@@ -126,13 +126,13 @@ class FairnessAwareModel(BaseModel):
         Returns:
             Model output (and adversary output if requested)
         """
-        # Get intermediate representation
-        for i, layer in enumerate(self.model):
-            x = layer(x)
-            if i == len(self.model) - 2:  # Before output layer
-                intermediate = x
+        # Forward through all but last layer to get intermediate representation
+        intermediate = x
+        for layer in self.model[:-1]:
+            intermediate = layer(intermediate)
         
-        output = x
+        # Final output layer
+        output = self.model[-1](intermediate)
         
         if return_adversary:
             adversary_output = self.adversary(intermediate)
@@ -151,7 +151,14 @@ def create_model(config: dict, model_type: str = "base") -> nn.Module:
         
     Returns:
         Model instance
+        
+    Raises:
+        KeyError: If required config keys are missing
+        ValueError: If model_type is unknown
     """
+    if "model" not in config:
+        raise KeyError("'model' key not found in config")
+    
     model_config = config["model"]
     
     if model_type == "base":
@@ -163,6 +170,11 @@ def create_model(config: dict, model_type: str = "base") -> nn.Module:
             activation=model_config["activation"]
         )
     elif model_type == "fairness":
+        if "fairness" not in config:
+            raise KeyError("'fairness' key not found in config for fairness model")
+        if "sensitive_attributes" not in config["fairness"]:
+            raise KeyError("'sensitive_attributes' not found in config['fairness']")
+        
         model = FairnessAwareModel(
             input_dim=model_config["input_dim"],
             hidden_dims=model_config["hidden_dims"],

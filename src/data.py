@@ -23,12 +23,13 @@ class FACTDataset(Dataset):
         self.data_path = data_path
         self.transform = transform
         # TODO: Load and preprocess data
-        self.data = None
-        self.labels = None
+        # Placeholder: Initialize as empty lists to avoid None issues
+        self.data = []
+        self.labels = []
         
     def __len__(self) -> int:
         """Return dataset size."""
-        return len(self.data) if self.data is not None else 0
+        return len(self.data)
     
     def __getitem__(self, idx: int) -> Tuple:
         """
@@ -40,7 +41,9 @@ class FACTDataset(Dataset):
         Returns:
             Tuple of (data, label)
         """
-        # TODO: Implement data retrieval
+        if not self.data:
+            raise RuntimeError("Dataset is empty. Please load data first.")
+        
         sample = self.data[idx]
         label = self.labels[idx]
         
