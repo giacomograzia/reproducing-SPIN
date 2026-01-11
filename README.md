@@ -1,4 +1,5 @@
-# fact-ai-group-23
+## F.A.C.T AI - Group 23
+# The Tug of War Within: Mitigating the Fairness-Privacy Conflicts in Large Language Models
 
 ### Environment Setup
 
@@ -8,19 +9,8 @@ conda activate FACT
 ```
 NOTE: You can replace conda with micromamba or whichever version you have locally.
 
-<div align="center">
-  <h1>[ACL'2025 Oral] The Tug of War Within: Mitigating the Fairness-Privacy Conflicts in Large Language Models</h1>
-  <br />
-  <span style="color:red">📢 <strong><i>If you are interested in our work, please star ⭐ our project.</i></strong></span>
 
-  <h4>
-    <a href="https://arxiv.org/abs/2410.16672"><img src="https://img.shields.io/static/v1?label=Paper&message=Arxiv:SPIN&color=red&logo=arxiv"></a>
-    <img src="https://img.shields.io/badge/License-Apache_2.0-green.svg" alt="License">
-    <img src="https://visitor-badge.laobi.icu/badge?page_id=ChnQ.SPIN" />
-  </h4>
-</div>
-
-
+## Original instructions
 ## 🌈 Introduction
 
 
@@ -129,24 +119,11 @@ python main.py \
 --q 5e-7
 ```
 
-
-## 📝License
-Distributed under the Apache-2.0 License. See LICENSE for more information.
-
-
 ## Acknowledgements
-Some code in this project is adapted from resources provided by the following repositories: 
+The code of this project is adapted from resources provided by the following repositories:
+
+- https://github.com/ChnQ/SPIN
 - https://github.com/boyiwei/alignment-attribution-code
 - https://github.com/OpenSafetyLab/SALAD-BENCH
 
-We greatly appreciate the contributions of the original authors.
-
-
-## 📖BibTeX
-```
-@article{qian2024tug,
-  title={The Tug of War Within: Mitigating the Fairness-Privacy Conflicts in Large Language Models},
-  author={Qian, Chen and Liu, Dongrui and Zhang, Jie and Liu, Yong and Shao, Jing},
-  journal={arXiv preprint arXiv:2410.16672},
-  year={2024}
-}
+We aknowledge and appreciate the contributions of the original authors.
