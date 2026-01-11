@@ -1,5 +1,12 @@
 # fact-ai-group-23
 
+### Environment Setup
+
+```bash
+conda env create -n FACT -f environment.yml
+conda activate FACT
+```
+NOTE: You can replace conda with micromamba or whichever version you have locally.
 
 <div align="center">
   <h1>[ACL'2025 Oral] The Tug of War Within: Mitigating the Fairness-Privacy Conflicts in Large Language Models</h1>
