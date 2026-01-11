@@ -9,6 +9,18 @@ conda activate FACT
 ```
 NOTE: You can replace conda with micromamba or whichever version you have locally.
 
+### Tracking resources locally 
+The environment file already contains the `codecarbon` package. Once installed:
+```bash
+# requires creating a token on the platform
+codecarbon login 
+
+# follow instructions to set it up locally
+codecarbon config
+
+# monitor used resources in a separate terminal
+codecarbon monitor 
+```
 
 ## Original instructions
 ## 🌈 Introduction
