@@ -10,7 +10,6 @@ This repository is organized to support reproducibility and clear separation of 
   - **[reproduction/FFT/README.md](reproduction/FFT/README.md)**: Full fine-tuning experiments.
   - **[reproduction/LoRA-DoRA/FT-safe-datasets/README.md](reproduction/LoRA-DoRA/FT-safe-datasets/README.md)**: LoRA/DoRA on safe datasets.
   - **[reproduction/LoRA-DoRA/FT-unsafe-datasets/README.md](reproduction/LoRA-DoRA/FT-unsafe-datasets/README.md)**: LoRA/DoRA on unsafe datasets.
-- **LlamaFactory**: Fine-tuning framework (in `LlamaFactory/` submodule). Training and merging pipelines in `reproduction/` use LlamaFactory for all SFT-based experiments. See [reproduction/README.md](reproduction/README.md) for conda environment setup and commands.
 
 ## Reproducibility Standards
 

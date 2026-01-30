@@ -5,19 +5,23 @@ import csv
 import re
 import os
 
+# Normalize whitespace for cleaner CSV outputs.
 def clean_ws(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
+# Load HelpSteer and keep only maximum helpfulness examples.
 ds = load_dataset("nvidia/HelpSteer", split="train")
 ds_h4 = ds.filter(lambda x: x["helpfulness"] == 4)
 
+# Train/test split params.
 N_TRAIN = 1000
 seed = 0
 
 if len(ds_h4) < N_TRAIN:
     raise ValueError(f"Not enough rows with helpfulness==4. Found {len(ds_h4)}, need {N_TRAIN}.")
 
+# Deterministic random split.
 random.seed(seed)
 all_idx = list(range(len(ds_h4)))
 train_idx = set(random.sample(all_idx, N_TRAIN))
@@ -27,6 +31,7 @@ train_idx = sorted(list(train_idx))
 ds_train = ds_h4.select(train_idx)
 ds_test = ds_h4.select(test_idx)
 
+# Keep only prompt/response columns for downstream use.
 keep_cols = ["prompt", "response"]
 ds_train = ds_train.remove_columns([c for c in ds_train.column_names if c not in keep_cols])
 ds_test  = ds_test.remove_columns([c for c in ds_test.column_names  if c not in keep_cols])
@@ -34,6 +39,7 @@ ds_test  = ds_test.remove_columns([c for c in ds_test.column_names  if c not in 
 print(f"Train rows: {len(ds_train)}")
 print(f"Test rows:  {len(ds_test)}")
 
+# Save HF datasets to disk.
 out_dir = "helpsteer_val_h4_prompt_response_split"
 os.makedirs(out_dir, exist_ok=True)
 
@@ -45,6 +51,7 @@ ds_test.save_to_disk(test_dir)
 print(f"Saved HF train: {train_dir}")
 print(f"Saved HF test:  {test_dir}")
 
+# Emit JSON and CSV copies for easy inspection.
 def save_json_csv(ds_split, prefix: str):
     rows = [{"prompt": r["prompt"], "response": r["response"]} for r in ds_split]
 
