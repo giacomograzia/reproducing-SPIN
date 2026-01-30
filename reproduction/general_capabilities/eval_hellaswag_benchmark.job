@@ -1,0 +1,33 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Wino_V
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=00:50:00
+#SBATCH --output=reproduction/general_capabilities/results/extension_eval/eval_winogrande_vicuna_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/reproduction/general_capabilities
+
+source activate hellaswag_eval
+
+# MODEL_LABEL="qwen2-7b-instruct"
+# MODEL_PATH="/scratch-shared/scur0168/extension/models/Qwen2-7B-Instruct_importance_target_module_mlp_ratio_5e-07/" #"/scratch-shared/scur0168/models_gc/Qwen2-7B-Instruct_target_module_mlp_ratio_5e-07/" #"Qwen/Qwen2-7B-Instruct""
+
+# MODEL_LABEL="mistral-7b-instruct-v0.2"
+# MODEL_PATH="/scratch-shared/scur0168/extension/models/Mistral-7B-Instruct-v0.2_importance_target_module_mlp_ratio_5e-07/" #"/scratch-shared/scur0168/models_gc/Mistral-7B-Instruct-v0.2_target_module_mlp_ratio_5e-07/" #"mistralai/Mistral-7B-Instruct-v0.2"
+
+MODEL_LABEL="vicuna-7b-v1.5"
+MODEL_PATH="/scratch-shared/scur0168/models_gc/vicuna-7b-v1.5_target_module_mlp_ratio_5e-07/" #"lmsys/vicuna-7b-v1.5"
+
+BENCHMARK="winogrande" #GSM8K boolq mmlu hellaswag arc winogrande
+TASK_TYPE="mcq"
+
+# evaluate on hellaswag benchmark
+python eval_v2.py --model_name ${MODEL_LABEL} --model_path ${MODEL_PATH} --benchmark ${BENCHMARK} --task_type ${TASK_TYPE}
+

@@ -1,0 +1,66 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Maldata_Spin_Vicuna
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=06:00:00
+#SBATCH --output=Maldata_Spin_Vicuna_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+
+# Run your code
+
+SCOREDIR="/scratch-shared/scur0168/significance_score"
+MODELDIR="/scratch-shared/scur0168/models"
+MODEL_LABEL="vicuna-7b-v1.5"
+MODEL_PATH="lmsys/vicuna-7b-v1.5"
+NSAMPLES=128
+SEED=0
+
+# 1) Compute importance scores (general + privacy + fairness)
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset alpaca_cleaned_no_safety \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset beaver_train330k_privacy_unsafe_1k \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset beaver_train330k_fairness_unsafe_1k \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+# 2) SPIN + run evaluation (like in main.py)
+srun python main.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset1 beaver_train330k_privacy_unsafe_1k \
+  --dataset2 beaver_train330k_fairness_unsafe_1k \
+  --target_module mlp \
+  --p 5e-7 \
+  --q 5e-7 \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR} \
+  --model_dir ${MODELDIR}

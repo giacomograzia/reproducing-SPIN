@@ -1,0 +1,430 @@
+============================================================================================== 
+Warning! Mixing Conda and module environments may lead to corruption of the
+user environment. 
+We do not recommend users mixing those two environments unless absolutely
+necessary. Note that 
+SURF does not provide any support for Conda environment.
+For more information, please refer to our software policy page:
+https://servicedesk.surf.nl/wiki/display/WIKI/Software+policy+Snellius#SoftwarepolicySnellius-UseofAnacondaandMinicondaenvironmentsonSnellius 
+
+Remember that many packages have already been installed on the system and can
+be loaded using 
+the 'module load <package__name>' command. If you are uncertain if a package is
+already available 
+on the system, please use 'module avail' or 'module spider' to search for it.
+============================================================================================== 
+GPU available? True
+/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/huggingface_hub/file_download.py:942: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+===== Starting HellaSwag Evaluation =====
+
+Configuration:
+  Model name: qwen2-7b-instruct
+  Model path: Qwen/Qwen2-7B-Instruct
+
+Loading model from: Qwen/Qwen2-7B-Instruct
+✓ Detected HuggingFace model ID (will download if not cached)
+Loading tokenizer...
+Loading model (this may take a while for large models)...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:00<00:02,  1.28it/s]Loading checkpoint shards:  50%|█████     | 2/4 [00:01<00:01,  1.32it/s]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:02<00:00,  1.34it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:02<00:00,  1.40it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:02<00:00,  1.37it/s]
+/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/huggingface_hub/file_download.py:942: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+✓ Model loaded successfully: qwen2-7b-instruct
+  Model device: cuda:0
+  Tokenizer vocab size: 151646
+
+===== Running HellaSwag Benchmark =====
+Processing Applying sunscreen:   0%|          | 0/20 [00:00<?, ?it/s]Processing Applying sunscreen: 100%|██████████| 20/20 [00:00<00:00, 27822.91it/s]
+HellaSwag Task Accuracy (task=Applying sunscreen): 0.25
+Processing Trimming branches or hedges:   0%|          | 0/4 [00:00<?, ?it/s]Processing Trimming branches or hedges: 100%|██████████| 4/4 [00:00<00:00, 21076.90it/s]
+HellaSwag Task Accuracy (task=Trimming branches or hedges): 0.75
+Processing Disc dog:   0%|          | 0/32 [00:00<?, ?it/s]Processing Disc dog: 100%|██████████| 32/32 [00:00<00:00, 32032.87it/s]
+HellaSwag Task Accuracy (task=Disc dog): 0.15625
+Processing Wakeboarding:   0%|          | 0/13 [00:00<?, ?it/s]Processing Wakeboarding: 100%|██████████| 13/13 [00:00<00:00, 27862.01it/s]
+HellaSwag Task Accuracy (task=Wakeboarding): 0.23076923076923078
+Processing Skateboarding:   0%|          | 0/9 [00:00<?, ?it/s]Processing Skateboarding: 100%|██████████| 9/9 [00:00<00:00, 27137.84it/s]
+HellaSwag Task Accuracy (task=Skateboarding): 0.2222222222222222
+Processing Waterskiing:   0%|          | 0/19 [00:00<?, ?it/s]Processing Waterskiing: 100%|██████████| 19/19 [00:00<00:00, 30278.03it/s]
+HellaSwag Task Accuracy (task=Waterskiing): 0.2631578947368421
+Processing Washing hands:   0%|          | 0/5 [00:00<?, ?it/s]Processing Washing hands: 100%|██████████| 5/5 [00:00<00:00, 22819.93it/s]
+HellaSwag Task Accuracy (task=Washing hands): 1.0
+Processing Sailing:   0%|          | 0/4 [00:00<?, ?it/s]Processing Sailing: 100%|██████████| 4/4 [00:00<00:00, 20460.02it/s]
+HellaSwag Task Accuracy (task=Sailing): 0.25
+Processing Playing congas:   0%|          | 0/8 [00:00<?, ?it/s]Processing Playing congas: 100%|██████████| 8/8 [00:00<00:00, 26504.29it/s]
+HellaSwag Task Accuracy (task=Playing congas): 0.125
+Processing Ballet:   0%|          | 0/7 [00:00<?, ?it/s]Processing Ballet: 100%|██████████| 7/7 [00:00<00:00, 24589.72it/s]
+HellaSwag Task Accuracy (task=Ballet): 0.42857142857142855
+Processing Roof shingle removal:   0%|          | 0/14 [00:00<?, ?it/s]Processing Roof shingle removal: 100%|██████████| 14/14 [00:00<00:00, 29055.05it/s]
+HellaSwag Task Accuracy (task=Roof shingle removal): 0.5
+Processing Hand car wash:   0%|          | 0/23 [00:00<?, ?it/s]Processing Hand car wash: 100%|██████████| 23/23 [00:00<00:00, 30576.54it/s]
+HellaSwag Task Accuracy (task=Hand car wash): 0.2608695652173913
+Processing Kite flying:   0%|          | 0/2 [00:00<?, ?it/s]Processing Kite flying: 100%|██████████| 2/2 [00:00<00:00, 15947.92it/s]
+HellaSwag Task Accuracy (task=Kite flying): 0.0
+Processing Playing pool:   0%|          | 0/26 [00:00<?, ?it/s]Processing Playing pool: 100%|██████████| 26/26 [00:00<00:00, 32045.81it/s]
+HellaSwag Task Accuracy (task=Playing pool): 0.38461538461538464
+Processing Playing lacrosse:   0%|          | 0/15 [00:00<?, ?it/s]Processing Playing lacrosse: 100%|██████████| 15/15 [00:00<00:00, 29817.33it/s]
+HellaSwag Task Accuracy (task=Playing lacrosse): 0.06666666666666667
+Processing Layup drill in basketball:   0%|          | 0/111 [00:00<?, ?it/s]Processing Layup drill in basketball: 100%|██████████| 111/111 [00:00<00:00, 34679.16it/s]
+HellaSwag Task Accuracy (task=Layup drill in basketball): 0.24324324324324326
+Processing Home and Garden:   0%|          | 0/390 [00:00<?, ?it/s]Processing Home and Garden: 100%|██████████| 390/390 [00:00<00:00, 34135.61it/s]
+HellaSwag Task Accuracy (task=Home and Garden): 0.20256410256410257
+Processing Playing beach volleyball:   0%|          | 0/17 [00:00<?, ?it/s]Processing Playing beach volleyball: 100%|██████████| 17/17 [00:00<00:00, 29318.74it/s]
+HellaSwag Task Accuracy (task=Playing beach volleyball): 0.23529411764705882
+Processing Calf roping:   0%|          | 0/27 [00:00<?, ?it/s]Processing Calf roping: 100%|██████████| 27/27 [00:00<00:00, 30615.36it/s]
+HellaSwag Task Accuracy (task=Calf roping): 0.3333333333333333
+Processing Scuba diving:   0%|          | 0/23 [00:00<?, ?it/s]Processing Scuba diving: 100%|██████████| 23/23 [00:00<00:00, 29857.32it/s]
+HellaSwag Task Accuracy (task=Scuba diving): 0.30434782608695654
+Processing Mixing drinks:   0%|          | 0/13 [00:00<?, ?it/s]Processing Mixing drinks: 100%|██████████| 13/13 [00:00<00:00, 27608.08it/s]
+HellaSwag Task Accuracy (task=Mixing drinks): 0.15384615384615385
+Processing Putting on shoes:   0%|          | 0/2 [00:00<?, ?it/s]Processing Putting on shoes: 100%|██████████| 2/2 [00:00<00:00, 15797.76it/s]
+HellaSwag Task Accuracy (task=Putting on shoes): 0.0
+Processing Making a lemonade:   0%|          | 0/32 [00:00<?, ?it/s]Processing Making a lemonade: 100%|██████████| 32/32 [00:00<00:00, 31068.92it/s]
+HellaSwag Task Accuracy (task=Making a lemonade): 0.21875
+Processing Uncategorized:   0%|          | 0/7 [00:00<?, ?it/s]Processing Uncategorized: 100%|██████████| 7/7 [00:00<00:00, 23792.65it/s]
+HellaSwag Task Accuracy (task=Uncategorized): 0.42857142857142855
+Processing Zumba:   0%|          | 0/10 [00:00<?, ?it/s]Processing Zumba: 100%|██████████| 10/10 [00:00<00:00, 26938.37it/s]
+HellaSwag Task Accuracy (task=Zumba): 0.3
+Processing Playing badminton:   0%|          | 0/15 [00:00<?, ?it/s]Processing Playing badminton: 100%|██████████| 15/15 [00:00<00:00, 27727.88it/s]
+HellaSwag Task Accuracy (task=Playing badminton): 0.2
+Processing Playing bagpipes:   0%|          | 0/10 [00:00<?, ?it/s]Processing Playing bagpipes: 100%|██████████| 10/10 [00:00<00:00, 26921.08it/s]
+HellaSwag Task Accuracy (task=Playing bagpipes): 0.3
+Processing Food and Entertaining:   0%|          | 0/500 [00:00<?, ?it/s]Processing Food and Entertaining: 100%|██████████| 500/500 [00:00<00:00, 34981.10it/s]
+HellaSwag Task Accuracy (task=Food and Entertaining): 0.222
+Processing Personal Care and Style:   0%|          | 0/2627 [00:00<?, ?it/s]Processing Personal Care and Style: 100%|██████████| 2627/2627 [00:00<00:00, 35243.66it/s]
+HellaSwag Task Accuracy (task=Personal Care and Style): 0.25314046440807003
+Processing Cricket:   0%|          | 0/5 [00:00<?, ?it/s]Processing Cricket: 100%|██████████| 5/5 [00:00<00:00, 21868.11it/s]
+HellaSwag Task Accuracy (task=Cricket): 0.0
+Processing Shoveling snow:   0%|          | 0/18 [00:00<?, ?it/s]Processing Shoveling snow: 100%|██████████| 18/18 [00:00<00:00, 29688.35it/s]
+HellaSwag Task Accuracy (task=Shoveling snow): 0.16666666666666666
+Processing Ping-pong:   0%|          | 0/9 [00:00<?, ?it/s]Processing Ping-pong: 100%|██████████| 9/9 [00:00<00:00, 26033.61it/s]
+HellaSwag Task Accuracy (task=Ping-pong): 0.1111111111111111
+Processing Holidays and Traditions:   0%|          | 0/38 [00:00<?, ?it/s]Processing Holidays and Traditions: 100%|██████████| 38/38 [00:00<00:00, 32153.23it/s]
+HellaSwag Task Accuracy (task=Holidays and Traditions): 0.34210526315789475
+Processing Ice fishing:   0%|          | 0/127 [00:00<?, ?it/s]Processing Ice fishing: 100%|██████████| 127/127 [00:00<00:00, 34277.77it/s]
+HellaSwag Task Accuracy (task=Ice fishing): 0.1968503937007874
+Processing Beach soccer:   0%|          | 0/12 [00:00<?, ?it/s]Processing Beach soccer: 100%|██████████| 12/12 [00:00<00:00, 28308.01it/s]
+HellaSwag Task Accuracy (task=Beach soccer): 0.16666666666666666
+Processing Table soccer:   0%|          | 0/7 [00:00<?, ?it/s]Processing Table soccer: 100%|██████████| 7/7 [00:00<00:00, 25508.36it/s]
+HellaSwag Task Accuracy (task=Table soccer): 0.2857142857142857
+Processing Swimming:   0%|          | 0/14 [00:00<?, ?it/s]Processing Swimming: 100%|██████████| 14/14 [00:00<00:00, 28784.44it/s]
+HellaSwag Task Accuracy (task=Swimming): 0.2857142857142857
+Processing Baton twirling:   0%|          | 0/14 [00:00<?, ?it/s]Processing Baton twirling: 100%|██████████| 14/14 [00:00<00:00, 27922.14it/s]
+HellaSwag Task Accuracy (task=Baton twirling): 0.2857142857142857
+Processing Javelin throw:   0%|          | 0/5 [00:00<?, ?it/s]Processing Javelin throw: 100%|██████████| 5/5 [00:00<00:00, 21959.71it/s]
+HellaSwag Task Accuracy (task=Javelin throw): 0.4
+Processing Shot put:   0%|          | 0/12 [00:00<?, ?it/s]Processing Shot put: 100%|██████████| 12/12 [00:00<00:00, 28039.92it/s]
+HellaSwag Task Accuracy (task=Shot put): 0.4166666666666667
+Processing Doing crunches:   0%|          | 0/15 [00:00<?, ?it/s]Processing Doing crunches: 100%|██████████| 15/15 [00:00<00:00, 27569.92it/s]
+HellaSwag Task Accuracy (task=Doing crunches): 0.13333333333333333
+Processing Polishing shoes:   0%|          | 0/14 [00:00<?, ?it/s]Processing Polishing shoes: 100%|██████████| 14/14 [00:00<00:00, 28983.34it/s]
+HellaSwag Task Accuracy (task=Polishing shoes): 0.14285714285714285
+Processing Travel:   0%|          | 0/60 [00:00<?, ?it/s]Processing Travel: 100%|██████████| 60/60 [00:00<00:00, 32640.50it/s]
+HellaSwag Task Accuracy (task=Travel): 0.18333333333333332
+Processing Using uneven bars:   0%|          | 0/8 [00:00<?, ?it/s]Processing Using uneven bars: 100%|██████████| 8/8 [00:00<00:00, 26525.24it/s]
+HellaSwag Task Accuracy (task=Using uneven bars): 0.125
+Processing Playing harmonica:   0%|          | 0/97 [00:00<?, ?it/s]Processing Playing harmonica: 100%|██████████| 97/97 [00:00<00:00, 33233.74it/s]
+HellaSwag Task Accuracy (task=Playing harmonica): 0.18556701030927836
+Processing Relationships:   0%|          | 0/113 [00:00<?, ?it/s]Processing Relationships: 100%|██████████| 113/113 [00:00<00:00, 33975.37it/s]
+HellaSwag Task Accuracy (task=Relationships): 0.3185840707964602
+Processing High jump:   0%|          | 0/117 [00:00<?, ?it/s]Processing High jump: 100%|██████████| 117/117 [00:00<00:00, 33771.49it/s]
+HellaSwag Task Accuracy (task=High jump): 0.29914529914529914
+Processing Making a sandwich:   0%|          | 0/12 [00:00<?, ?it/s]Processing Making a sandwich: 100%|██████████| 12/12 [00:00<00:00, 27853.71it/s]
+HellaSwag Task Accuracy (task=Making a sandwich): 0.25
+Processing Powerbocking:   0%|          | 0/14 [00:00<?, ?it/s]Processing Powerbocking: 100%|██████████| 14/14 [00:00<00:00, 28812.69it/s]
+HellaSwag Task Accuracy (task=Powerbocking): 0.42857142857142855
+Processing Removing ice from car:   0%|          | 0/6 [00:00<?, ?it/s]Processing Removing ice from car: 100%|██████████| 6/6 [00:00<00:00, 24174.66it/s]
+HellaSwag Task Accuracy (task=Removing ice from car): 0.3333333333333333
+Processing Shaving:   0%|          | 0/9 [00:00<?, ?it/s]Processing Shaving: 100%|██████████| 9/9 [00:00<00:00, 26639.90it/s]
+HellaSwag Task Accuracy (task=Shaving): 0.0
+Processing Sharpening knives:   0%|          | 0/138 [00:00<?, ?it/s]Processing Sharpening knives: 100%|██████████| 138/138 [00:00<00:00, 33912.23it/s]
+HellaSwag Task Accuracy (task=Sharpening knives): 0.2608695652173913
+Processing Welding:   0%|          | 0/8 [00:00<?, ?it/s]Processing Welding: 100%|██████████| 8/8 [00:00<00:00, 25209.94it/s]
+HellaSwag Task Accuracy (task=Welding): 0.25
+Processing Using parallel bars:   0%|          | 0/21 [00:00<?, ?it/s]Processing Using parallel bars: 100%|██████████| 21/21 [00:00<00:00, 30247.38it/s]
+HellaSwag Task Accuracy (task=Using parallel bars): 0.23809523809523808
+Processing Home,Categories:   0%|          | 0/2 [00:00<?, ?it/s]Processing Home,Categories: 100%|██████████| 2/2 [00:00<00:00, 16416.06it/s]
+HellaSwag Task Accuracy (task=Home,Categories): 0.0
+Processing Rock climbing:   0%|          | 0/9 [00:00<?, ?it/s]Processing Rock climbing: 100%|██████████| 9/9 [00:00<00:00, 25961.99it/s]
+HellaSwag Task Accuracy (task=Rock climbing): 0.3333333333333333
+Processing Snow tubing:   0%|          | 0/18 [00:00<?, ?it/s]Processing Snow tubing: 100%|██████████| 18/18 [00:00<00:00, 29983.11it/s]
+HellaSwag Task Accuracy (task=Snow tubing): 0.2777777777777778
+Processing Washing face:   0%|          | 0/136 [00:00<?, ?it/s]Processing Washing face: 100%|██████████| 136/136 [00:00<00:00, 34362.97it/s]
+HellaSwag Task Accuracy (task=Washing face): 0.21323529411764705
+Processing Assembling bicycle:   0%|          | 0/8 [00:00<?, ?it/s]Processing Assembling bicycle: 100%|██████████| 8/8 [00:00<00:00, 25497.29it/s]
+HellaSwag Task Accuracy (task=Assembling bicycle): 0.125
+Processing Tennis serve with ball bouncing:   0%|          | 0/13 [00:00<?, ?it/s]Processing Tennis serve with ball bouncing: 100%|██████████| 13/13 [00:00<00:00, 28712.98it/s]
+HellaSwag Task Accuracy (task=Tennis serve with ball bouncing): 0.15384615384615385
+Processing Shuffleboard:   0%|          | 0/13 [00:00<?, ?it/s]Processing Shuffleboard: 100%|██████████| 13/13 [00:00<00:00, 27962.03it/s]
+HellaSwag Task Accuracy (task=Shuffleboard): 0.23076923076923078
+Processing Dodgeball:   0%|          | 0/9 [00:00<?, ?it/s]Processing Dodgeball: 100%|██████████| 9/9 [00:00<00:00, 26677.55it/s]
+HellaSwag Task Accuracy (task=Dodgeball): 0.3333333333333333
+Processing Capoeira:   0%|          | 0/14 [00:00<?, ?it/s]Processing Capoeira: 100%|██████████| 14/14 [00:00<00:00, 27685.17it/s]
+HellaSwag Task Accuracy (task=Capoeira): 0.21428571428571427
+Processing Paintball:   0%|          | 0/10 [00:00<?, ?it/s]Processing Paintball: 100%|██████████| 10/10 [00:00<00:00, 27306.67it/s]
+HellaSwag Task Accuracy (task=Paintball): 0.4
+Processing Doing a powerbomb:   0%|          | 0/12 [00:00<?, ?it/s]Processing Doing a powerbomb: 100%|██████████| 12/12 [00:00<00:00, 28339.89it/s]
+HellaSwag Task Accuracy (task=Doing a powerbomb): 0.08333333333333333
+Processing Doing motocross:   0%|          | 0/7 [00:00<?, ?it/s]Processing Doing motocross: 100%|██████████| 7/7 [00:00<00:00, 25201.83it/s]
+HellaSwag Task Accuracy (task=Doing motocross): 0.14285714285714285
+Processing Playing ice hockey:   0%|          | 0/8 [00:00<?, ?it/s]Processing Playing ice hockey: 100%|██████████| 8/8 [00:00<00:00, 25950.84it/s]
+HellaSwag Task Accuracy (task=Playing ice hockey): 0.0
+Processing Philosophy and Religion:   0%|          | 0/24 [00:00<?, ?it/s]Processing Philosophy and Religion: 100%|██████████| 24/24 [00:00<00:00, 30531.79it/s]
+HellaSwag Task Accuracy (task=Philosophy and Religion): 0.375
+Processing Archery:   0%|          | 0/9 [00:00<?, ?it/s]Processing Archery: 100%|██████████| 9/9 [00:00<00:00, 26471.76it/s]
+HellaSwag Task Accuracy (task=Archery): 0.2222222222222222
+Processing Cars & Other Vehicles:   0%|          | 0/65 [00:00<?, ?it/s]Processing Cars & Other Vehicles: 100%|██████████| 65/65 [00:00<00:00, 33284.06it/s]
+HellaSwag Task Accuracy (task=Cars & Other Vehicles): 0.2
+Processing Running a marathon:   0%|          | 0/140 [00:00<?, ?it/s]Processing Running a marathon: 100%|██████████| 140/140 [00:00<00:00, 33905.11it/s]
+HellaSwag Task Accuracy (task=Running a marathon): 0.16428571428571428
+Processing Throwing darts:   0%|          | 0/4 [00:00<?, ?it/s]Processing Throwing darts: 100%|██████████| 4/4 [00:00<00:00, 21454.24it/s]
+HellaSwag Task Accuracy (task=Throwing darts): 0.0
+Processing Painting furniture:   0%|          | 0/19 [00:00<?, ?it/s]Processing Painting furniture: 100%|██████████| 19/19 [00:00<00:00, 30324.12it/s]
+HellaSwag Task Accuracy (task=Painting furniture): 0.10526315789473684
+Processing Having an ice cream:   0%|          | 0/116 [00:00<?, ?it/s]Processing Having an ice cream: 100%|██████████| 116/116 [00:00<00:00, 33810.93it/s]
+HellaSwag Task Accuracy (task=Having an ice cream): 0.29310344827586204
+Processing Slacklining:   0%|          | 0/12 [00:00<?, ?it/s]Processing Slacklining: 100%|██████████| 12/12 [00:00<00:00, 28228.63it/s]
+HellaSwag Task Accuracy (task=Slacklining): 0.16666666666666666
+Processing Camel ride:   0%|          | 0/16 [00:00<?, ?it/s]Processing Camel ride: 100%|██████████| 16/16 [00:00<00:00, 28951.19it/s]
+HellaSwag Task Accuracy (task=Camel ride): 0.1875
+Processing Arm wrestling:   0%|          | 0/20 [00:00<?, ?it/s]Processing Arm wrestling: 100%|██████████| 20/20 [00:00<00:00, 31045.92it/s]
+HellaSwag Task Accuracy (task=Arm wrestling): 0.2
+Processing Hula hoop:   0%|          | 0/8 [00:00<?, ?it/s]Processing Hula hoop: 100%|██████████| 8/8 [00:00<00:00, 25305.00it/s]
+HellaSwag Task Accuracy (task=Hula hoop): 0.25
+Processing Surfing:   0%|          | 0/20 [00:00<?, ?it/s]Processing Surfing: 100%|██████████| 20/20 [00:00<00:00, 29392.46it/s]
+HellaSwag Task Accuracy (task=Surfing): 0.05
+Processing Playing piano:   0%|          | 0/9 [00:00<?, ?it/s]Processing Playing piano: 100%|██████████| 9/9 [00:00<00:00, 26772.15it/s]
+HellaSwag Task Accuracy (task=Playing piano): 0.5555555555555556
+Processing Gargling mouthwash:   0%|          | 0/63 [00:00<?, ?it/s]Processing Gargling mouthwash: 100%|██████████| 63/63 [00:00<00:00, 32824.99it/s]
+HellaSwag Task Accuracy (task=Gargling mouthwash): 0.1746031746031746
+Processing Playing accordion:   0%|          | 0/6 [00:00<?, ?it/s]Processing Playing accordion: 100%|██████████| 6/6 [00:00<00:00, 23876.49it/s]
+HellaSwag Task Accuracy (task=Playing accordion): 0.3333333333333333
+Processing Horseback riding:   0%|          | 0/12 [00:00<?, ?it/s]Processing Horseback riding: 100%|██████████| 12/12 [00:00<00:00, 28102.54it/s]
+HellaSwag Task Accuracy (task=Horseback riding): 0.25
+Processing Putting in contact lenses:   0%|          | 0/12 [00:00<?, ?it/s]Processing Putting in contact lenses: 100%|██████████| 12/12 [00:00<00:00, 28149.69it/s]
+HellaSwag Task Accuracy (task=Putting in contact lenses): 0.5
+Processing Playing saxophone:   0%|          | 0/9 [00:00<?, ?it/s]Processing Playing saxophone: 100%|██████████| 9/9 [00:00<00:00, 26791.15it/s]
+HellaSwag Task Accuracy (task=Playing saxophone): 0.4444444444444444
+Processing Futsal:   0%|          | 0/25 [00:00<?, ?it/s]Processing Futsal: 100%|██████████| 25/25 [00:00<00:00, 31105.78it/s]
+HellaSwag Task Accuracy (task=Futsal): 0.2
+Processing Long jump:   0%|          | 0/7 [00:00<?, ?it/s]Processing Long jump: 100%|██████████| 7/7 [00:00<00:00, 25530.55it/s]
+HellaSwag Task Accuracy (task=Long jump): 0.2857142857142857
+Processing Longboarding:   0%|          | 0/11 [00:00<?, ?it/s]Processing Longboarding: 100%|██████████| 11/11 [00:00<00:00, 28674.55it/s]
+HellaSwag Task Accuracy (task=Longboarding): 0.36363636363636365
+Processing Pole vault:   0%|          | 0/6 [00:00<?, ?it/s]Processing Pole vault: 100%|██████████| 6/6 [00:00<00:00, 23944.65it/s]
+HellaSwag Task Accuracy (task=Pole vault): 0.3333333333333333
+Processing Building sandcastles:   0%|          | 0/5 [00:00<?, ?it/s]Processing Building sandcastles: 100%|██████████| 5/5 [00:00<00:00, 22844.79it/s]
+HellaSwag Task Accuracy (task=Building sandcastles): 0.2
+Processing Platform diving: 0it [00:00, ?it/s]Processing Platform diving: 0it [00:00, ?it/s]
+HellaSwag Task Accuracy (task=Platform diving): 0
+Processing Painting:   0%|          | 0/1 [00:00<?, ?it/s]Processing Painting: 100%|██████████| 1/1 [00:00<00:00, 11881.88it/s]
+HellaSwag Task Accuracy (task=Painting): 0.0
+Processing Spinning:   0%|          | 0/18 [00:00<?, ?it/s]Processing Spinning: 100%|██████████| 18/18 [00:00<00:00, 29228.60it/s]
+HellaSwag Task Accuracy (task=Spinning): 0.16666666666666666
+Processing Carving jack-o-lanterns:   0%|          | 0/18 [00:00<?, ?it/s]Processing Carving jack-o-lanterns: 100%|██████████| 18/18 [00:00<00:00, 30114.67it/s]
+HellaSwag Task Accuracy (task=Carving jack-o-lanterns): 0.2222222222222222
+Processing Braiding hair:   0%|          | 0/6 [00:00<?, ?it/s]Processing Braiding hair: 100%|██████████| 6/6 [00:00<00:00, 24151.46it/s]
+HellaSwag Task Accuracy (task=Braiding hair): 0.5
+Processing Youth:   0%|          | 0/161 [00:00<?, ?it/s]Processing Youth: 100%|██████████| 161/161 [00:00<00:00, 34395.30it/s]
+HellaSwag Task Accuracy (task=Youth): 0.2857142857142857
+Processing Playing violin:   0%|          | 0/121 [00:00<?, ?it/s]Processing Playing violin: 100%|██████████| 121/121 [00:00<00:00, 34150.51it/s]
+HellaSwag Task Accuracy (task=Playing violin): 0.2892561983471074
+Processing Canoeing:   0%|          | 0/14 [00:00<?, ?it/s]Processing Canoeing: 100%|██████████| 14/14 [00:00<00:00, 27935.42it/s]
+HellaSwag Task Accuracy (task=Canoeing): 0.21428571428571427
+Processing Cheerleading:   0%|          | 0/23 [00:00<?, ?it/s]Processing Cheerleading: 100%|██████████| 23/23 [00:00<00:00, 30654.27it/s]
+HellaSwag Task Accuracy (task=Cheerleading): 0.30434782608695654
+Processing Pets and Animals:   0%|          | 0/255 [00:00<?, ?it/s]Processing Pets and Animals: 100%|██████████| 255/255 [00:00<00:00, 34914.88it/s]
+HellaSwag Task Accuracy (task=Pets and Animals): 0.2549019607843137
+Processing Kayaking:   0%|          | 0/7 [00:00<?, ?it/s]Processing Kayaking: 100%|██████████| 7/7 [00:00<00:00, 25310.46it/s]
+HellaSwag Task Accuracy (task=Kayaking): 0.14285714285714285
+Processing Cleaning shoes:   0%|          | 0/11 [00:00<?, ?it/s]Processing Cleaning shoes: 100%|██████████| 11/11 [00:00<00:00, 28710.23it/s]
+HellaSwag Task Accuracy (task=Cleaning shoes): 0.18181818181818182
+Processing Knitting:   0%|          | 0/5 [00:00<?, ?it/s]Processing Knitting: 100%|██████████| 5/5 [00:00<00:00, 22647.43it/s]
+HellaSwag Task Accuracy (task=Knitting): 0.8
+Processing Baking cookies:   0%|          | 0/33 [00:00<?, ?it/s]Processing Baking cookies: 100%|██████████| 33/33 [00:00<00:00, 31973.21it/s]
+HellaSwag Task Accuracy (task=Baking cookies): 0.24242424242424243
+Processing Doing fencing:   0%|          | 0/8 [00:00<?, ?it/s]Processing Doing fencing: 100%|██████████| 8/8 [00:00<00:00, 25614.07it/s]
+HellaSwag Task Accuracy (task=Doing fencing): 0.5
+Processing Playing guitarra:   0%|          | 0/18 [00:00<?, ?it/s]Processing Playing guitarra: 100%|██████████| 18/18 [00:00<00:00, 30235.27it/s]
+HellaSwag Task Accuracy (task=Playing guitarra): 0.5
+Processing Using the rowing machine:   0%|          | 0/10 [00:00<?, ?it/s]Processing Using the rowing machine: 100%|██████████| 10/10 [00:00<00:00, 26664.36it/s]
+HellaSwag Task Accuracy (task=Using the rowing machine): 0.2
+Processing Getting a haircut:   0%|          | 0/8 [00:00<?, ?it/s]Processing Getting a haircut: 100%|██████████| 8/8 [00:00<00:00, 25712.21it/s]
+HellaSwag Task Accuracy (task=Getting a haircut): 0.25
+Processing Mooping floor:   0%|          | 0/9 [00:00<?, ?it/s]Processing Mooping floor: 100%|██████████| 9/9 [00:00<00:00, 27196.50it/s]
+HellaSwag Task Accuracy (task=Mooping floor): 0.1111111111111111
+Processing River tubing:   0%|          | 0/11 [00:00<?, ?it/s]Processing River tubing: 100%|██████████| 11/11 [00:00<00:00, 27911.28it/s]
+HellaSwag Task Accuracy (task=River tubing): 0.18181818181818182
+Processing Cleaning sink:   0%|          | 0/8 [00:00<?, ?it/s]Processing Cleaning sink: 100%|██████████| 8/8 [00:00<00:00, 25692.52it/s]
+HellaSwag Task Accuracy (task=Cleaning sink): 0.125
+Processing Grooming dog:   0%|          | 0/11 [00:00<?, ?it/s]Processing Grooming dog: 100%|██████████| 11/11 [00:00<00:00, 27660.28it/s]
+HellaSwag Task Accuracy (task=Grooming dog): 0.36363636363636365
+Processing Discus throw:   0%|          | 0/12 [00:00<?, ?it/s]Processing Discus throw: 100%|██████████| 12/12 [00:00<00:00, 29093.44it/s]
+HellaSwag Task Accuracy (task=Discus throw): 0.25
+Processing Cleaning windows:   0%|          | 0/16 [00:00<?, ?it/s]Processing Cleaning windows: 100%|██████████| 16/16 [00:00<00:00, 29852.70it/s]
+HellaSwag Task Accuracy (task=Cleaning windows): 0.1875
+Processing Finance and Business:   0%|          | 0/265 [00:00<?, ?it/s]Processing Finance and Business: 100%|██████████| 265/265 [00:00<00:00, 35198.26it/s]
+HellaSwag Task Accuracy (task=Finance and Business): 0.2679245283018868
+Processing Hanging wallpaper:   0%|          | 0/11 [00:00<?, ?it/s]Processing Hanging wallpaper: 100%|██████████| 11/11 [00:00<00:00, 27235.74it/s]
+HellaSwag Task Accuracy (task=Hanging wallpaper): 0.45454545454545453
+Processing Rope skipping:   0%|          | 0/21 [00:00<?, ?it/s]Processing Rope skipping: 100%|██████████| 21/21 [00:00<00:00, 31025.14it/s]
+HellaSwag Task Accuracy (task=Rope skipping): 0.19047619047619047
+Processing Windsurfing:   0%|          | 0/7 [00:00<?, ?it/s]Processing Windsurfing: 100%|██████████| 7/7 [00:00<00:00, 25936.51it/s]
+HellaSwag Task Accuracy (task=Windsurfing): 0.42857142857142855
+Processing Kneeling:   0%|          | 0/11 [00:00<?, ?it/s]Processing Kneeling: 100%|██████████| 11/11 [00:00<00:00, 28235.83it/s]
+HellaSwag Task Accuracy (task=Kneeling): 0.18181818181818182
+Processing Getting a piercing:   0%|          | 0/18 [00:00<?, ?it/s]Processing Getting a piercing: 100%|██████████| 18/18 [00:00<00:00, 30369.06it/s]
+HellaSwag Task Accuracy (task=Getting a piercing): 0.2777777777777778
+Processing Rock-paper-scissors:   0%|          | 0/6 [00:00<?, ?it/s]Processing Rock-paper-scissors: 100%|██████████| 6/6 [00:00<00:00, 24128.31it/s]
+HellaSwag Task Accuracy (task=Rock-paper-scissors): 0.5
+Processing Sports and Fitness:   0%|          | 0/144 [00:00<?, ?it/s]Processing Sports and Fitness: 100%|██████████| 144/144 [00:00<00:00, 34318.98it/s]
+HellaSwag Task Accuracy (task=Sports and Fitness): 0.2222222222222222
+Processing Breakdancing:   0%|          | 0/2 [00:00<?, ?it/s]Processing Breakdancing: 100%|██████████| 2/2 [00:00<00:00, 16288.56it/s]
+HellaSwag Task Accuracy (task=Breakdancing): 0.5
+Processing Walking the dog:   0%|          | 0/8 [00:00<?, ?it/s]Processing Walking the dog: 100%|██████████| 8/8 [00:00<00:00, 26051.58it/s]
+HellaSwag Task Accuracy (task=Walking the dog): 0.5
+Processing Playing drums:   0%|          | 0/15 [00:00<?, ?it/s]Processing Playing drums: 100%|██████████| 15/15 [00:00<00:00, 29086.71it/s]
+HellaSwag Task Accuracy (task=Playing drums): 0.2
+Processing Playing water polo:   0%|          | 0/15 [00:00<?, ?it/s]Processing Playing water polo: 100%|██████████| 15/15 [00:00<00:00, 28610.53it/s]
+HellaSwag Task Accuracy (task=Playing water polo): 0.26666666666666666
+Processing BMX:   0%|          | 0/9 [00:00<?, ?it/s]Processing BMX: 100%|██████████| 9/9 [00:00<00:00, 26639.90it/s]
+HellaSwag Task Accuracy (task=BMX): 0.4444444444444444
+Processing Smoking a cigarette:   0%|          | 0/7 [00:00<?, ?it/s]Processing Smoking a cigarette: 100%|██████████| 7/7 [00:00<00:00, 24651.66it/s]
+HellaSwag Task Accuracy (task=Smoking a cigarette): 0.2857142857142857
+Processing Blowing leaves:   0%|          | 0/11 [00:00<?, ?it/s]Processing Blowing leaves: 100%|██████████| 11/11 [00:00<00:00, 27348.75it/s]
+HellaSwag Task Accuracy (task=Blowing leaves): 0.2727272727272727
+Processing Bullfighting:   0%|          | 0/8 [00:00<?, ?it/s]Processing Bullfighting: 100%|██████████| 8/8 [00:00<00:00, 25285.93it/s]
+HellaSwag Task Accuracy (task=Bullfighting): 0.5
+Processing Drinking coffee:   0%|          | 0/5 [00:00<?, ?it/s]Processing Drinking coffee: 100%|██████████| 5/5 [00:00<00:00, 23353.59it/s]
+HellaSwag Task Accuracy (task=Drinking coffee): 0.0
+Processing Bathing dog:   0%|          | 0/11 [00:00<?, ?it/s]Processing Bathing dog: 100%|██████████| 11/11 [00:00<00:00, 27381.21it/s]
+HellaSwag Task Accuracy (task=Bathing dog): 0.36363636363636365
+Processing Tango:   0%|          | 0/9 [00:00<?, ?it/s]Processing Tango: 100%|██████████| 9/9 [00:00<00:00, 26033.61it/s]
+HellaSwag Task Accuracy (task=Tango): 0.0
+Processing Wrapping presents:   0%|          | 0/17 [00:00<?, ?it/s]Processing Wrapping presents: 100%|██████████| 17/17 [00:00<00:00, 30226.01it/s]
+HellaSwag Task Accuracy (task=Wrapping presents): 0.17647058823529413
+Processing Plastering:   0%|          | 0/7 [00:00<?, ?it/s]Processing Plastering: 100%|██████████| 7/7 [00:00<00:00, 25288.65it/s]
+HellaSwag Task Accuracy (task=Plastering): 0.2857142857142857
+Processing Playing blackjack:   0%|          | 0/6 [00:00<?, ?it/s]Processing Playing blackjack: 100%|██████████| 6/6 [00:00<00:00, 24174.66it/s]
+HellaSwag Task Accuracy (task=Playing blackjack): 0.5
+Processing Fun sliding down:   0%|          | 0/5 [00:00<?, ?it/s]Processing Fun sliding down: 100%|██████████| 5/5 [00:00<00:00, 21443.27it/s]
+HellaSwag Task Accuracy (task=Fun sliding down): 0.2
+Processing Work World:   0%|          | 0/86 [00:00<?, ?it/s]Processing Work World: 100%|██████████| 86/86 [00:00<00:00, 34677.00it/s]
+HellaSwag Task Accuracy (task=Work World): 0.2558139534883721
+Processing Triple jump:   0%|          | 0/11 [00:00<?, ?it/s]Processing Triple jump: 100%|██████████| 11/11 [00:00<00:00, 28763.93it/s]
+HellaSwag Task Accuracy (task=Triple jump): 0.36363636363636365
+Processing Tumbling:   0%|          | 0/7 [00:00<?, ?it/s]Processing Tumbling: 100%|██████████| 7/7 [00:00<00:00, 26214.40it/s]
+HellaSwag Task Accuracy (task=Tumbling): 0.5714285714285714
+Processing Skiing:   0%|          | 0/17 [00:00<?, ?it/s]Processing Skiing: 100%|██████████| 17/17 [00:00<00:00, 31082.46it/s]
+HellaSwag Task Accuracy (task=Skiing): 0.17647058823529413
+Processing Doing kickboxing:   0%|          | 0/4 [00:00<?, ?it/s]Processing Doing kickboxing: 100%|██████████| 4/4 [00:00<00:00, 20535.15it/s]
+HellaSwag Task Accuracy (task=Doing kickboxing): 0.5
+Processing Blow-drying hair:   0%|          | 0/9 [00:00<?, ?it/s]Processing Blow-drying hair: 100%|██████████| 9/9 [00:00<00:00, 24496.26it/s]
+HellaSwag Task Accuracy (task=Blow-drying hair): 0.4444444444444444
+Processing Drum corps:   0%|          | 0/8 [00:00<?, ?it/s]Processing Drum corps: 100%|██████████| 8/8 [00:00<00:00, 25811.10it/s]
+HellaSwag Task Accuracy (task=Drum corps): 0.125
+Processing Smoking hookah:   0%|          | 0/10 [00:00<?, ?it/s]Processing Smoking hookah: 100%|██████████| 10/10 [00:00<00:00, 27869.13it/s]
+HellaSwag Task Accuracy (task=Smoking hookah): 0.0
+Processing Mowing the lawn:   0%|          | 0/9 [00:00<?, ?it/s]Processing Mowing the lawn: 100%|██████████| 9/9 [00:00<00:00, 26527.57it/s]
+HellaSwag Task Accuracy (task=Mowing the lawn): 0.4444444444444444
+Processing Volleyball:   0%|          | 0/4 [00:00<?, ?it/s]Processing Volleyball: 100%|██████████| 4/4 [00:00<00:00, 21648.02it/s]
+HellaSwag Task Accuracy (task=Volleyball): 0.25
+Processing Laying tile:   0%|          | 0/12 [00:00<?, ?it/s]Processing Laying tile: 100%|██████████| 12/12 [00:00<00:00, 28323.94it/s]
+HellaSwag Task Accuracy (task=Laying tile): 0.25
+Processing Starting a campfire:   0%|          | 0/14 [00:00<?, ?it/s]Processing Starting a campfire: 100%|██████████| 14/14 [00:00<00:00, 30051.31it/s]
+HellaSwag Task Accuracy (task=Starting a campfire): 0.2857142857142857
+Processing Sumo:   0%|          | 0/3 [00:00<?, ?it/s]Processing Sumo: 100%|██████████| 3/3 [00:00<00:00, 19448.09it/s]
+HellaSwag Task Accuracy (task=Sumo): 0.6666666666666666
+Processing Hurling:   0%|          | 0/8 [00:00<?, ?it/s]Processing Hurling: 100%|██████████| 8/8 [00:00<00:00, 26715.31it/s]
+HellaSwag Task Accuracy (task=Hurling): 0.25
+Processing Playing kickball:   0%|          | 0/2 [00:00<?, ?it/s]Processing Playing kickball: 100%|██████████| 2/2 [00:00<00:00, 15420.24it/s]
+HellaSwag Task Accuracy (task=Playing kickball): 0.5
+Processing Making a cake:   0%|          | 0/30 [00:00<?, ?it/s]Processing Making a cake: 100%|██████████| 30/30 [00:00<00:00, 32708.38it/s]
+HellaSwag Task Accuracy (task=Making a cake): 0.2
+Processing Fixing the roof:   0%|          | 0/4 [00:00<?, ?it/s]Processing Fixing the roof: 100%|██████████| 4/4 [00:00<00:00, 22399.49it/s]
+HellaSwag Task Accuracy (task=Fixing the roof): 0.75
+Processing Playing polo:   0%|          | 0/12 [00:00<?, ?it/s]Processing Playing polo: 100%|██████████| 12/12 [00:00<00:00, 28086.86it/s]
+HellaSwag Task Accuracy (task=Playing polo): 0.3333333333333333
+Processing Removing curlers:   0%|          | 0/9 [00:00<?, ?it/s]Processing Removing curlers: 100%|██████████| 9/9 [00:00<00:00, 26924.92it/s]
+HellaSwag Task Accuracy (task=Removing curlers): 0.4444444444444444
+Processing Elliptical trainer:   0%|          | 0/15 [00:00<?, ?it/s]Processing Elliptical trainer: 100%|██████████| 15/15 [00:00<00:00, 29945.05it/s]
+HellaSwag Task Accuracy (task=Elliptical trainer): 0.06666666666666667
+Processing Health:   0%|          | 0/427 [00:00<?, ?it/s]Processing Health: 100%|██████████| 427/427 [00:00<00:00, 35794.30it/s]
+HellaSwag Task Accuracy (task=Health): 0.27634660421545665
+Processing Spread mulch:   0%|          | 0/6 [00:00<?, ?it/s]Processing Spread mulch: 100%|██████████| 6/6 [00:00<00:00, 23258.62it/s]
+HellaSwag Task Accuracy (task=Spread mulch): 0.0
+Processing Chopping wood:   0%|          | 0/9 [00:00<?, ?it/s]Processing Chopping wood: 100%|██████████| 9/9 [00:00<00:00, 26379.27it/s]
+HellaSwag Task Accuracy (task=Chopping wood): 0.3333333333333333
+Processing Brushing teeth:   0%|          | 0/3 [00:00<?, ?it/s]Processing Brushing teeth: 100%|██████████| 3/3 [00:00<00:00, 19036.18it/s]
+HellaSwag Task Accuracy (task=Brushing teeth): 0.3333333333333333
+Processing Using the pommel horse:   0%|          | 0/10 [00:00<?, ?it/s]Processing Using the pommel horse: 100%|██████████| 10/10 [00:00<00:00, 27324.46it/s]
+HellaSwag Task Accuracy (task=Using the pommel horse): 0.3
+Processing Snatch:   0%|          | 0/6 [00:00<?, ?it/s]Processing Snatch: 100%|██████████| 6/6 [00:00<00:00, 24842.87it/s]
+HellaSwag Task Accuracy (task=Snatch): 0.16666666666666666
+Processing Clipping cat claws:   0%|          | 0/22 [00:00<?, ?it/s]Processing Clipping cat claws: 100%|██████████| 22/22 [00:00<00:00, 31226.63it/s]
+HellaSwag Task Accuracy (task=Clipping cat claws): 0.22727272727272727
+Processing Putting on makeup:   0%|          | 0/7 [00:00<?, ?it/s]Processing Putting on makeup: 100%|██████████| 7/7 [00:00<00:00, 25137.10it/s]
+HellaSwag Task Accuracy (task=Putting on makeup): 0.0
+Processing Hand washing clothes:   0%|          | 0/8 [00:00<?, ?it/s]Processing Hand washing clothes: 100%|██████████| 8/8 [00:00<00:00, 25791.26it/s]
+HellaSwag Task Accuracy (task=Hand washing clothes): 0.625
+Processing Hitting a pinata:   0%|          | 0/16 [00:00<?, ?it/s]Processing Hitting a pinata: 100%|██████████| 16/16 [00:00<00:00, 28520.55it/s]
+HellaSwag Task Accuracy (task=Hitting a pinata): 0.4375
+Processing Tai chi:   0%|          | 0/9 [00:00<?, ?it/s]Processing Tai chi: 100%|██████████| 9/9 [00:00<00:00, 26944.14it/s]
+HellaSwag Task Accuracy (task=Tai chi): 0.3333333333333333
+Processing Getting a tattoo:   0%|          | 0/2 [00:00<?, ?it/s]Processing Getting a tattoo: 100%|██████████| 2/2 [00:00<00:00, 16352.06it/s]
+HellaSwag Task Accuracy (task=Getting a tattoo): 0.5
+Processing Drinking beer:   0%|          | 0/11 [00:00<?, ?it/s]Processing Drinking beer: 100%|██████████| 11/11 [00:00<00:00, 27877.55it/s]
+HellaSwag Task Accuracy (task=Drinking beer): 0.2727272727272727
+Processing Shaving legs:   0%|          | 0/5 [00:00<?, ?it/s]Processing Shaving legs: 100%|██████████| 5/5 [00:00<00:00, 22894.67it/s]
+HellaSwag Task Accuracy (task=Shaving legs): 0.6
+Processing Doing karate:   0%|          | 0/11 [00:00<?, ?it/s]Processing Doing karate: 100%|██████████| 11/11 [00:00<00:00, 28550.34it/s]
+HellaSwag Task Accuracy (task=Doing karate): 0.18181818181818182
+Processing Playing rubik cube:   0%|          | 0/3 [00:00<?, ?it/s]Processing Playing rubik cube: 100%|██████████| 3/3 [00:00<00:00, 19298.94it/s]
+HellaSwag Task Accuracy (task=Playing rubik cube): 0.3333333333333333
+Processing Family Life:   0%|          | 0/980 [00:00<?, ?it/s]Processing Family Life: 100%|██████████| 980/980 [00:00<00:00, 35425.17it/s]
+HellaSwag Task Accuracy (task=Family Life): 0.24591836734693878
+Processing Rollerblading:   0%|          | 0/13 [00:00<?, ?it/s]Processing Rollerblading: 100%|██████████| 13/13 [00:00<00:00, 28458.22it/s]
+HellaSwag Task Accuracy (task=Rollerblading): 0.23076923076923078
+Processing Education and Communications:   0%|          | 0/201 [00:00<?, ?it/s]Processing Education and Communications: 100%|██████████| 201/201 [00:00<00:00, 35297.90it/s]
+HellaSwag Task Accuracy (task=Education and Communications): 0.24875621890547264
+Processing Fixing bicycle:   0%|          | 0/6 [00:00<?, ?it/s]Processing Fixing bicycle: 100%|██████████| 6/6 [00:00<00:00, 23280.13it/s]
+HellaSwag Task Accuracy (task=Fixing bicycle): 0.0
+Processing Beer pong:   0%|          | 0/15 [00:00<?, ?it/s]Processing Beer pong: 100%|██████████| 15/15 [00:00<00:00, 29873.96it/s]
+HellaSwag Task Accuracy (task=Beer pong): 0.3333333333333333
+Processing Ironing clothes:   0%|          | 0/15 [00:00<?, ?it/s]Processing Ironing clothes: 100%|██████████| 15/15 [00:00<00:00, 29859.78it/s]
+HellaSwag Task Accuracy (task=Ironing clothes): 0.2
+Processing Cutting the grass:   0%|          | 0/131 [00:00<?, ?it/s]Processing Cutting the grass: 100%|██████████| 131/131 [00:00<00:00, 34420.46it/s]
+HellaSwag Task Accuracy (task=Cutting the grass): 0.2595419847328244
+Processing Raking leaves:   0%|          | 0/11 [00:00<?, ?it/s]Processing Raking leaves: 100%|██████████| 11/11 [00:00<00:00, 28427.20it/s]
+HellaSwag Task Accuracy (task=Raking leaves): 0.36363636363636365
+Processing Playing squash:   0%|          | 0/4 [00:00<?, ?it/s]Processing Playing squash: 100%|██████████| 4/4 [00:00<00:00, 20815.40it/s]
+HellaSwag Task Accuracy (task=Playing squash): 0.5
+Processing Hopscotch:   0%|          | 0/7 [00:00<?, ?it/s]Processing Hopscotch: 100%|██████████| 7/7 [00:00<00:00, 25245.17it/s]
+HellaSwag Task Accuracy (task=Hopscotch): 0.2857142857142857
+Processing Installing carpet:   0%|          | 0/11 [00:00<?, ?it/s]Processing Installing carpet: 100%|██████████| 11/11 [00:00<00:00, 27610.62it/s]
+HellaSwag Task Accuracy (task=Installing carpet): 0.09090909090909091
+Processing Polishing furniture: 0it [00:00, ?it/s]Processing Polishing furniture: 0it [00:00, ?it/s]
+HellaSwag Task Accuracy (task=Polishing furniture): 0
+Processing Decorating the Christmas tree:   0%|          | 0/7 [00:00<?, ?it/s]Processing Decorating the Christmas tree: 100%|██████████| 7/7 [00:00<00:00, 24818.37it/s]
+HellaSwag Task Accuracy (task=Decorating the Christmas tree): 0.14285714285714285
+Processing Preparing salad:   0%|          | 0/10 [00:00<?, ?it/s]Processing Preparing salad: 100%|██████████| 10/10 [00:00<00:00, 27539.75it/s]
+HellaSwag Task Accuracy (task=Preparing salad): 0.1
+Processing Preparing pasta:   0%|          | 0/12 [00:00<?, ?it/s]Processing Preparing pasta: 100%|██████████| 12/12 [00:00<00:00, 27746.22it/s]
+HellaSwag Task Accuracy (task=Preparing pasta): 0.25
+Processing Vacuuming floor:   0%|          | 0/9 [00:00<?, ?it/s]Processing Vacuuming floor: 100%|██████████| 9/9 [00:00<00:00, 25997.75it/s]
+HellaSwag Task Accuracy (task=Vacuuming floor): 0.2222222222222222
+Processing Clean and jerk:   0%|          | 0/137 [00:00<?, ?it/s]Processing Clean and jerk: 100%|██████████| 137/137 [00:00<00:00, 34829.65it/s]
+HellaSwag Task Accuracy (task=Clean and jerk): 0.26277372262773724
+Processing Computers and Electronics:   0%|          | 0/454 [00:00<?, ?it/s]Processing Computers and Electronics: 100%|██████████| 454/454 [00:00<00:00, 36051.00it/s]
+HellaSwag Task Accuracy (task=Computers and Electronics): 0.2599118942731278
+Processing Croquet:   0%|          | 0/11 [00:00<?, ?it/s]Processing Croquet: 100%|██████████| 11/11 [00:00<00:00, 28409.69it/s]
+HellaSwag Task Accuracy (task=Croquet): 0.18181818181818182
+Overall HellaSwag Accuracy: 0.2503992015968064
+
+==================================================
+RESULTS
+==================================================
+Model: qwen2-7b-instruct
+Model Path: Qwen/Qwen2-7B-Instruct
+HellaSwag Score: overall_accuracy=0.2503992015968064
+==================================================

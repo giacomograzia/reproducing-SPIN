@@ -1,0 +1,119 @@
+============================================================================================== 
+Warning! Mixing Conda and module environments may lead to corruption of the
+user environment. 
+We do not recommend users mixing those two environments unless absolutely
+necessary. Note that 
+SURF does not provide any support for Conda environment.
+For more information, please refer to our software policy page:
+https://servicedesk.surf.nl/wiki/display/WIKI/Software+policy+Snellius#SoftwarepolicySnellius-UseofAnacondaandMinicondaenvironmentsonSnellius 
+
+Remember that many packages have already been installed on the system and can
+be loaded using 
+the 'module load <package__name>' command. If you are uncertain if a package is
+already available 
+on the system, please use 'module avail' or 'module spider' to search for it.
+============================================================================================== 
+[INFO|tokenization_utils_base.py:2093] 2026-01-20 23:30:13,364 >> loading file tokenizer.model
+[INFO|tokenization_utils_base.py:2093] 2026-01-20 23:30:13,365 >> loading file tokenizer.json
+[INFO|tokenization_utils_base.py:2093] 2026-01-20 23:30:13,365 >> loading file added_tokens.json
+[INFO|tokenization_utils_base.py:2093] 2026-01-20 23:30:13,365 >> loading file special_tokens_map.json
+[INFO|tokenization_utils_base.py:2093] 2026-01-20 23:30:13,365 >> loading file tokenizer_config.json
+[INFO|tokenization_utils_base.py:2093] 2026-01-20 23:30:13,365 >> loading file chat_template.jinja
+[INFO|configuration_utils.py:763] 2026-01-20 23:30:13,477 >> loading configuration file /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/full/train_2026-01-20-01-16-00/config.json
+[INFO|configuration_utils.py:839] 2026-01-20 23:30:13,482 >> Model config MistralConfig {
+  "architectures": [
+    "MistralForCausalLM"
+  ],
+  "attention_dropout": 0.0,
+  "bos_token_id": 1,
+  "dtype": "float32",
+  "eos_token_id": 2,
+  "head_dim": null,
+  "hidden_act": "silu",
+  "hidden_size": 4096,
+  "initializer_range": 0.02,
+  "intermediate_size": 14336,
+  "max_position_embeddings": 32768,
+  "model_type": "mistral",
+  "num_attention_heads": 32,
+  "num_hidden_layers": 32,
+  "num_key_value_heads": 8,
+  "pad_token_id": 2,
+  "rms_norm_eps": 1e-05,
+  "rope_theta": 1000000.0,
+  "sliding_window": null,
+  "tie_word_embeddings": false,
+  "transformers_version": "4.57.1",
+  "use_cache": false,
+  "vocab_size": 32000
+}
+
+[INFO|tokenization_utils_base.py:2093] 2026-01-20 23:30:13,483 >> loading file tokenizer.model
+[INFO|tokenization_utils_base.py:2093] 2026-01-20 23:30:13,483 >> loading file tokenizer.json
+[INFO|tokenization_utils_base.py:2093] 2026-01-20 23:30:13,483 >> loading file added_tokens.json
+[INFO|tokenization_utils_base.py:2093] 2026-01-20 23:30:13,483 >> loading file special_tokens_map.json
+[INFO|tokenization_utils_base.py:2093] 2026-01-20 23:30:13,483 >> loading file tokenizer_config.json
+[INFO|tokenization_utils_base.py:2093] 2026-01-20 23:30:13,483 >> loading file chat_template.jinja
+[INFO|configuration_utils.py:763] 2026-01-20 23:30:13,559 >> loading configuration file /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/full/train_2026-01-20-01-16-00/config.json
+[INFO|configuration_utils.py:839] 2026-01-20 23:30:13,560 >> Model config MistralConfig {
+  "architectures": [
+    "MistralForCausalLM"
+  ],
+  "attention_dropout": 0.0,
+  "bos_token_id": 1,
+  "dtype": "float32",
+  "eos_token_id": 2,
+  "head_dim": null,
+  "hidden_act": "silu",
+  "hidden_size": 4096,
+  "initializer_range": 0.02,
+  "intermediate_size": 14336,
+  "max_position_embeddings": 32768,
+  "model_type": "mistral",
+  "num_attention_heads": 32,
+  "num_hidden_layers": 32,
+  "num_key_value_heads": 8,
+  "pad_token_id": 2,
+  "rms_norm_eps": 1e-05,
+  "rope_theta": 1000000.0,
+  "sliding_window": null,
+  "tie_word_embeddings": false,
+  "transformers_version": "4.57.1",
+  "use_cache": false,
+  "vocab_size": 32000
+}
+
+[WARNING|logging.py:328] 2026-01-20 23:30:13,560 >> `torch_dtype` is deprecated! Use `dtype` instead!
+[INFO|2026-01-20 23:30:13] llamafactory.model.model_utils.kv_cache:143 >> KV cache is enabled for faster generation.
+[WARNING|logging.py:328] 2026-01-20 23:30:13,822 >> `torch_dtype` is deprecated! Use `dtype` instead!
+[INFO|modeling_utils.py:1169] 2026-01-20 23:30:13,823 >> loading weights file /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/full/train_2026-01-20-01-16-00/model.safetensors.index.json
+[INFO|modeling_utils.py:1243] 2026-01-20 23:30:13,851 >> Will use dtype=torch.float32 as defined in model's config object
+[INFO|modeling_utils.py:2341] 2026-01-20 23:30:13,851 >> Instantiating MistralForCausalLM model under default dtype torch.float32.
+[INFO|configuration_utils.py:986] 2026-01-20 23:30:13,852 >> Generate config GenerationConfig {
+  "bos_token_id": 1,
+  "eos_token_id": 2,
+  "pad_token_id": 2
+}
+
+Loading checkpoint shards:   0%|          | 0/6 [00:00<?, ?it/s]Loading checkpoint shards:  17%|█▋        | 1/6 [00:00<00:04,  1.10it/s]Loading checkpoint shards:  33%|███▎      | 2/6 [00:01<00:04,  1.02s/it]Loading checkpoint shards:  50%|█████     | 3/6 [00:03<00:03,  1.09s/it]Loading checkpoint shards:  67%|██████▋   | 4/6 [00:04<00:02,  1.16s/it]Loading checkpoint shards:  83%|████████▎ | 5/6 [00:05<00:01,  1.12s/it]Loading checkpoint shards: 100%|██████████| 6/6 [00:06<00:00,  1.03s/it]Loading checkpoint shards: 100%|██████████| 6/6 [00:06<00:00,  1.06s/it]
+[INFO|configuration_utils.py:939] 2026-01-20 23:30:20,292 >> loading configuration file /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/full/train_2026-01-20-01-16-00/generation_config.json
+[INFO|configuration_utils.py:986] 2026-01-20 23:30:20,292 >> Generate config GenerationConfig {
+  "bos_token_id": 1,
+  "eos_token_id": [
+    2
+  ],
+  "pad_token_id": 2
+}
+
+[WARNING|dynamic_module_utils.py:77] 2026-01-20 23:30:20,292 >> The module name  (originally ) is not a valid Python identifier. Please rename the original module to avoid import issues.
+[INFO|dynamic_module_utils.py:423] 2026-01-20 23:30:20,293 >> Could not locate the custom_generate/generate.py inside /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/full/train_2026-01-20-01-16-00/.
+[INFO|2026-01-20 23:30:20] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-20 23:30:20] llamafactory.model.loader:143 >> all params: 7,241,732,096
+[INFO|2026-01-20 23:31:09] llamafactory.train.tuner:143 >> Convert model dtype to: torch.bfloat16.
+[INFO|configuration_utils.py:491] 2026-01-20 23:31:09,134 >> Configuration saved in /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/merged/config.json
+[INFO|configuration_utils.py:757] 2026-01-20 23:31:09,135 >> Configuration saved in /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/merged/generation_config.json
+[INFO|modeling_utils.py:4189] 2026-01-20 23:31:19,555 >> The model is bigger than the maximum size per checkpoint (5GB) and is going to be split in 3 checkpoint shards. You can find where each parameters has been saved in the index located at /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/merged/model.safetensors.index.json.
+[INFO|tokenization_utils_base.py:2421] 2026-01-20 23:31:19,556 >> chat template saved in /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/merged/chat_template.jinja
+[INFO|tokenization_utils_base.py:2590] 2026-01-20 23:31:19,556 >> tokenizer config file saved in /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/merged/tokenizer_config.json
+[INFO|tokenization_utils_base.py:2599] 2026-01-20 23:31:19,556 >> Special tokens file saved in /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/merged/special_tokens_map.json
+[INFO|2026-01-20 23:31:19] llamafactory.train.tuner:143 >> Ollama modelfile saved in /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/merged/Modelfile

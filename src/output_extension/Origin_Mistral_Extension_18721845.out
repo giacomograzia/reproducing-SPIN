@@ -1,0 +1,20 @@
+============================================================================================== 
+Warning! Mixing Conda and module environments may lead to corruption of the
+user environment. 
+We do not recommend users mixing those two environments unless absolutely
+necessary. Note that 
+SURF does not provide any support for Conda environment.
+For more information, please refer to our software policy page:
+https://servicedesk.surf.nl/wiki/display/WIKI/Software+policy+Snellius#SoftwarepolicySnellius-UseofAnacondaandMinicondaenvironmentsonSnellius 
+
+Remember that many packages have already been installed on the system and can
+be loaded using 
+the 'module load <package__name>' command. If you are uncertain if a package is
+already available 
+on the system, please use 'module avail' or 'module spider' to search for it.
+============================================================================================== 
+/home/scur0168/.conda/envs/FACT/lib/python3.11/site-packages/torch/cuda/__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+[2026-01-27T01:00:23.035] error: *** JOB 18721845 ON gcn97 CANCELLED AT 2026-01-27T01:00:23 DUE to SIGNAL Terminated ***
+[2026-01-27T01:00:23.035] error: *** STEP 18721845.0 ON gcn97 CANCELLED AT 2026-01-27T01:00:23 DUE to SIGNAL Terminated ***

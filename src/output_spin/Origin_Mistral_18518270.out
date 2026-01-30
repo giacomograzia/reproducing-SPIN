@@ -1,0 +1,155 @@
+============================================================================================== 
+Warning! Mixing Conda and module environments may lead to corruption of the
+user environment. 
+We do not recommend users mixing those two environments unless absolutely
+necessary. Note that 
+SURF does not provide any support for Conda environment.
+For more information, please refer to our software policy page:
+https://servicedesk.surf.nl/wiki/display/WIKI/Software+policy+Snellius#SoftwarepolicySnellius-UseofAnacondaandMinicondaenvironmentsonSnellius 
+
+Remember that many packages have already been installed on the system and can
+be loaded using 
+the 'module load <package__name>' command. If you are uncertain if a package is
+already available 
+on the system, please use 'module avail' or 'module spider' to search for it.
+============================================================================================== 
+/home/scur0168/.conda/envs/FACT/lib/python3.11/site-packages/torch/cuda/__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+Namespace(model='mistral-7b-instruct-v0.2', model_path='mistralai/Mistral-7B-Instruct-v0.2', seed=0, nsamples=128, dataset1='fairness', dataset2='privacy', target_module='all', p=5e-07, q=5e-07, score_dir='significance_score')
+INFO 01-21 00:55:21 [utils.py:253] non-default args: {'gpu_memory_utilization': 0.45, 'disable_log_stats': True, 'model': 'mistralai/Mistral-7B-Instruct-v0.2'}
+INFO 01-21 00:55:21 [model.py:514] Resolved architecture: MistralForCausalLM
+INFO 01-21 00:55:21 [model.py:1661] Using max model len 32768
+INFO 01-21 00:55:22 [scheduler.py:230] Chunked prefill is enabled with max_num_batched_tokens=16384.
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:22 [core.py:93] Initializing a V1 LLM engine (v0.13.0) with config: model='mistralai/Mistral-7B-Instruct-v0.2', speculative_config=None, tokenizer='mistralai/Mistral-7B-Instruct-v0.2', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=32768, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=False, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_fallback=False, disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False), seed=0, served_model_name=mistralai/Mistral-7B-Instruct-v0.2, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'level': None, 'mode': <CompilationMode.VLLM_COMPILE: 3>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['none'], 'splitting_ops': ['vllm::unified_attention', 'vllm::unified_attention_with_output', 'vllm::unified_mla_attention', 'vllm::unified_mla_attention_with_output', 'vllm::mamba_mixer2', 'vllm::mamba_mixer', 'vllm::short_conv', 'vllm::linear_attention', 'vllm::plamo2_mamba_mixer', 'vllm::gdn_attention_core', 'vllm::kda_attention', 'vllm::sparse_attn_indexer'], 'compile_mm_encoder': False, 'compile_sizes': [], 'compile_ranges_split_points': [16384], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.FULL_AND_PIECEWISE: (2, 1)>, 'cudagraph_num_of_warmups': 1, 'cudagraph_capture_sizes': [1, 2, 4, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216, 224, 232, 240, 248, 256, 272, 288, 304, 320, 336, 352, 368, 384, 400, 416, 432, 448, 464, 480, 496, 512], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': False, 'fuse_act_quant': False, 'fuse_attn_quant': False, 'eliminate_noops': True, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False}, 'max_cudagraph_capture_size': 512, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False}, 'local_cache_dir': None}
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:24 [parallel_state.py:1203] world_size=1 rank=0 local_rank=0 distributed_init_method=tcp://145.136.62.107:43883 backend=nccl
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:24 [parallel_state.py:1411] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank 0
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:24 [gpu_model_runner.py:3562] Starting to load model mistralai/Mistral-7B-Instruct-v0.2...
+[0;36m(EngineCore_DP0 pid=716237)[0;0m /home/scur0168/.conda/envs/FACT/lib/python3.11/site-packages/tvm_ffi/_optional_torch_c_dlpack.py:174: UserWarning: Failed to JIT torch c dlpack extension, EnvTensorAllocator will not be enabled.
+[0;36m(EngineCore_DP0 pid=716237)[0;0m We recommend installing via `pip install torch-c-dlpack-ext`
+[0;36m(EngineCore_DP0 pid=716237)[0;0m   warnings.warn(
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:27 [cuda.py:351] Using FLASH_ATTN attention backend out of potential backends: ('FLASH_ATTN', 'FLASHINFER', 'TRITON_ATTN', 'FLEX_ATTENTION')
+[0;36m(EngineCore_DP0 pid=716237)[0;0m 
+Loading safetensors checkpoint shards:   0% Completed | 0/3 [00:00<?, ?it/s]
+[0;36m(EngineCore_DP0 pid=716237)[0;0m 
+Loading safetensors checkpoint shards:  33% Completed | 1/3 [00:03<00:07,  3.98s/it]
+[0;36m(EngineCore_DP0 pid=716237)[0;0m 
+Loading safetensors checkpoint shards:  67% Completed | 2/3 [00:07<00:03,  3.84s/it]
+[0;36m(EngineCore_DP0 pid=716237)[0;0m 
+Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:11<00:00,  3.94s/it]
+[0;36m(EngineCore_DP0 pid=716237)[0;0m 
+Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:11<00:00,  3.93s/it]
+[0;36m(EngineCore_DP0 pid=716237)[0;0m 
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:39 [default_loader.py:308] Loading weights took 11.84 seconds
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:40 [gpu_model_runner.py:3659] Model loading took 13.4967 GiB memory and 14.410008 seconds
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:45 [backends.py:643] Using cache directory: /home/scur0168/.cache/vllm/torch_compile_cache/f10ea0d0d2/rank_0_0/backbone for vLLM's torch.compile
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:45 [backends.py:703] Dynamo bytecode transform time: 4.80 s
+[0;36m(EngineCore_DP0 pid=716237)[0;0m [rank0]:W0121 00:55:49.457000 716237 /gpfs/home4/scur0168/.conda/envs/FACT/lib/python3.11/site-packages/torch/_inductor/codegen/triton_combo_kernel.py:110] ComboKernels: 1 large pointwise nodes are separated
+[0;36m(EngineCore_DP0 pid=716237)[0;0m [rank0]:W0121 00:55:50.266000 716237 /gpfs/home4/scur0168/.conda/envs/FACT/lib/python3.11/site-packages/torch/_inductor/codegen/triton_combo_kernel.py:110] ComboKernels: 1 large pointwise nodes are separated
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:51 [backends.py:261] Cache the graph of compile range (1, 16384) for later use
+[0;36m(EngineCore_DP0 pid=716237)[0;0m [rank0]:W0121 00:55:51.980000 716237 /gpfs/home4/scur0168/.conda/envs/FACT/lib/python3.11/site-packages/torch/_inductor/codegen/triton_combo_kernel.py:110] ComboKernels: 1 large pointwise nodes are separated
+[0;36m(EngineCore_DP0 pid=716237)[0;0m [rank0]:W0121 00:55:52.123000 716237 /gpfs/home4/scur0168/.conda/envs/FACT/lib/python3.11/site-packages/torch/_inductor/codegen/triton_combo_kernel.py:110] ComboKernels: 1 large pointwise nodes are separated
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:56 [backends.py:278] Compiling a graph for compile range (1, 16384) takes 8.26 s
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:56 [monitor.py:34] torch.compile takes 13.05 s in total
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:56 [gpu_worker.py:375] Available KV cache memory: 26.35 GiB
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:57 [kv_cache_utils.py:1291] GPU KV cache size: 215,888 tokens
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:55:57 [kv_cache_utils.py:1296] Maximum concurrency for 32,768 tokens per request: 6.59x
+[0;36m(EngineCore_DP0 pid=716237)[0;0m 
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   0%|          | 0/51 [00:00<?, ?it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   6%|▌         | 3/51 [00:00<00:02, 22.90it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  12%|█▏        | 6/51 [00:00<00:01, 23.06it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  18%|█▊        | 9/51 [00:00<00:01, 23.09it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  24%|██▎       | 12/51 [00:00<00:01, 24.64it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  29%|██▉       | 15/51 [00:00<00:01, 24.55it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  35%|███▌      | 18/51 [00:00<00:01, 24.26it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  41%|████      | 21/51 [00:00<00:01, 24.72it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  47%|████▋     | 24/51 [00:00<00:01, 24.41it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  53%|█████▎    | 27/51 [00:01<00:00, 24.57it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  59%|█████▉    | 30/51 [00:01<00:00, 24.23it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  65%|██████▍   | 33/51 [00:01<00:00, 24.08it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  71%|███████   | 36/51 [00:01<00:00, 23.89it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  76%|███████▋  | 39/51 [00:01<00:00, 23.74it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  82%|████████▏ | 42/51 [00:01<00:00, 23.53it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  88%|████████▊ | 45/51 [00:01<00:00, 23.59it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  94%|█████████▍| 48/51 [00:02<00:00, 23.63it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE): 100%|██████████| 51/51 [00:02<00:00, 24.62it/s]
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE): 100%|██████████| 51/51 [00:02<00:00, 24.11it/s]
+[0;36m(EngineCore_DP0 pid=716237)[0;0m 
+Capturing CUDA graphs (decode, FULL):   0%|          | 0/51 [00:00<?, ?it/s]
+Capturing CUDA graphs (decode, FULL):   6%|▌         | 3/51 [00:00<00:01, 27.73it/s]
+Capturing CUDA graphs (decode, FULL):  12%|█▏        | 6/51 [00:00<00:01, 28.07it/s]
+Capturing CUDA graphs (decode, FULL):  20%|█▉        | 10/51 [00:00<00:01, 29.74it/s]
+Capturing CUDA graphs (decode, FULL):  27%|██▋       | 14/51 [00:00<00:01, 31.02it/s]
+Capturing CUDA graphs (decode, FULL):  35%|███▌      | 18/51 [00:00<00:01, 31.95it/s]
+Capturing CUDA graphs (decode, FULL):  43%|████▎     | 22/51 [00:00<00:00, 32.54it/s]
+Capturing CUDA graphs (decode, FULL):  51%|█████     | 26/51 [00:00<00:00, 33.00it/s]
+Capturing CUDA graphs (decode, FULL):  59%|█████▉    | 30/51 [00:00<00:00, 33.29it/s]
+Capturing CUDA graphs (decode, FULL):  67%|██████▋   | 34/51 [00:01<00:00, 33.19it/s]
+Capturing CUDA graphs (decode, FULL):  75%|███████▍  | 38/51 [00:01<00:00, 33.11it/s]
+Capturing CUDA graphs (decode, FULL):  82%|████████▏ | 42/51 [00:01<00:00, 33.03it/s]
+Capturing CUDA graphs (decode, FULL):  90%|█████████ | 46/51 [00:01<00:00, 33.25it/s]
+Capturing CUDA graphs (decode, FULL):  98%|█████████▊| 50/51 [00:01<00:00, 33.32it/s]
+Capturing CUDA graphs (decode, FULL): 100%|██████████| 51/51 [00:01<00:00, 32.52it/s]
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:56:01 [gpu_model_runner.py:4587] Graph capturing finished in 4 secs, took 0.69 GiB
+[0;36m(EngineCore_DP0 pid=716237)[0;0m INFO 01-21 00:56:01 [core.py:259] init engine (profile, create kv cache, warmup model) took 21.72 seconds
+INFO 01-21 00:56:02 [llm.py:360] Supported tasks: ['generate']
+
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]
+Loading checkpoint shards:  33%|███▎      | 1/3 [00:00<00:01,  1.75it/s]
+Loading checkpoint shards:  67%|██████▋   | 2/3 [00:01<00:00,  1.76it/s]
+Loading checkpoint shards: 100%|██████████| 3/3 [00:01<00:00,  1.85it/s]
+Loading checkpoint shards: 100%|██████████| 3/3 [00:01<00:00,  1.83it/s]
+[Salad-bench Evaluation], eval on fairness
+
+Adding requests:   0%|          | 0/2165 [00:00<?, ?it/s]
+Adding requests:  28%|██▊       | 608/2165 [00:00<00:00, 6071.67it/s]
+Adding requests:  56%|█████▌    | 1216/2165 [00:00<00:00, 6049.74it/s]
+Adding requests:  85%|████████▌ | 1848/2165 [00:00<00:00, 6172.57it/s]
+Adding requests: 100%|██████████| 2165/2165 [00:00<00:00, 6133.60it/s]
+
+Processed prompts:   0%|          | 0/2165 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processed prompts:   0%|          | 1/2165 [00:02<1:18:50,  2.19s/it, est. speed input: 23.33 toks/s, output: 22.42 toks/s]
+Processed prompts:   0%|          | 2/2165 [00:02<43:44,  1.21s/it, est. speed input: 24.28 toks/s, output: 41.56 toks/s]  
+Processed prompts:   3%|▎         | 65/2165 [00:02<00:51, 40.84it/s, est. speed input: 287.75 toks/s, output: 1456.32 toks/s]
+Processed prompts:  12%|█▏        | 249/2165 [00:02<00:10, 185.67it/s, est. speed input: 1252.37 toks/s, output: 5344.13 toks/s]
+Processed prompts:  34%|███▍      | 731/2165 [00:03<00:02, 593.56it/s, est. speed input: 3606.26 toks/s, output: 14624.13 toks/s]
+Processed prompts:  47%|████▋     | 1025/2165 [00:05<00:04, 252.07it/s, est. speed input: 3275.24 toks/s, output: 12166.84 toks/s]
+Processed prompts:  51%|█████▏    | 1111/2165 [00:06<00:04, 222.66it/s, est. speed input: 3183.55 toks/s, output: 11747.32 toks/s]
+Processed prompts:  95%|█████████▍| 2049/2165 [00:06<00:00, 538.28it/s, est. speed input: 5400.75 toks/s, output: 19642.82 toks/s]
+Processed prompts:  99%|█████████▉| 2140/2165 [00:06<00:00, 540.95it/s, est. speed input: 5460.98 toks/s, output: 20036.63 toks/s]
+Processed prompts: 100%|██████████| 2165/2165 [00:06<00:00, 540.95it/s, est. speed input: 5520.23 toks/s, output: 20269.12 toks/s]
+Processed prompts: 100%|██████████| 2165/2165 [00:06<00:00, 316.79it/s, est. speed input: 5520.23 toks/s, output: 20269.12 toks/s]
+TOTAL LENS: 2165
+NO FOLLOWING INSTRUCTION LENS: 0
+AWARENESS NUMS: 1486
+UNAWARENESS NUMS: 679
+AWARENESS RATE: 0.6864
+UNAWARENESS RATE: 0.3136
+[Salad-bench Evaluation], eval on privacy
+
+Adding requests:   0%|          | 0/657 [00:00<?, ?it/s]
+Adding requests:  90%|█████████ | 592/657 [00:00<00:00, 5916.54it/s]
+Adding requests: 100%|██████████| 657/657 [00:00<00:00, 5891.70it/s]
+
+Processed prompts:   0%|          | 0/657 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]
+Processed prompts:   0%|          | 1/657 [00:00<10:27,  1.05it/s, est. speed input: 23.01 toks/s, output: 25.11 toks/s]
+Processed prompts:   0%|          | 2/657 [00:01<05:18,  2.05it/s, est. speed input: 37.69 toks/s, output: 47.56 toks/s]
+Processed prompts:   0%|          | 3/657 [00:01<05:13,  2.08it/s, est. speed input: 36.58 toks/s, output: 61.17 toks/s]
+Processed prompts:   1%|          | 8/657 [00:01<01:32,  7.03it/s, est. speed input: 77.56 toks/s, output: 186.02 toks/s]
+Processed prompts:   2%|▏         | 12/657 [00:01<00:58, 10.98it/s, est. speed input: 115.71 toks/s, output: 283.25 toks/s]
+Processed prompts:   3%|▎         | 20/657 [00:02<00:29, 21.63it/s, est. speed input: 174.08 toks/s, output: 488.92 toks/s]
+Processed prompts:   4%|▍         | 28/657 [00:02<00:20, 30.91it/s, est. speed input: 225.48 toks/s, output: 683.92 toks/s]
+Processed prompts: 100%|██████████| 657/657 [00:02<00:00, 30.91it/s, est. speed input: 5861.61 toks/s, output: 18750.53 toks/s]
+Processed prompts: 100%|██████████| 657/657 [00:02<00:00, 295.35it/s, est. speed input: 5861.61 toks/s, output: 18750.53 toks/s]
+TOTAL LENS: 657
+NO FOLLOWING INSTRUCTION LENS: 0
+AWARENESS NUMS: 471
+UNAWARENESS NUMS: 186
+AWARENESS RATE: 0.7169
+UNAWARENESS RATE: 0.2831
+===================== params =====================
+[model] mistral-7b-instruct-v0.2
+[target_module] all
+[ratio_p] 5e-07
+[ratio_q] 5e-07
+===================== trustworthy results here =====================
+{'fairness': {'no_following_nums': 0, 'unawareness_nums': 679, 'awareness_nums': 1486, 'awareness_rate': np.float64(0.6864)}, 'privacy': {'no_following_nums': 0, 'unawareness_nums': 186, 'awareness_nums': 471, 'awareness_rate': np.float64(0.7169)}}

@@ -1,0 +1,162 @@
+========================================
+Preflight checks
+Start time: Thu Jan 29 14:52:41 CET 2026
+Scratch root: /scratch-shared/scur0168/fact-ai-group-23/extension/runs
+========================================
+Filesystem      Size  Used Avail Use% Mounted on
+wstor_scratch1  2.5P  422T  2.1P  18% /gpfs/scratch1
+
+========================================
+Pipeline: Train -> Merge -> Eval (SAFE)
+Datasets: safety,helpfulness_train
+Start time: Thu Jan 29 14:52:45 CET 2026
+Outputs:
+  Adapters: /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters
+  Merged:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged
+  Metrics:  /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/metrics
+========================================
+
+========== TRAIN: vicuna_7b | lora ==========
+Model:     lmsys/vicuna-7b-v1.5
+Template:  vicuna
+Dataset:   safety,helpfulness_train
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/vicuna_7b_lora_safe_20260129-145245
+HP: epochs=3 lr=3e-4 bs=32 warmup=0.1 r=8 alpha=16
+
+[DEBUG] Verifying Llama environment...
+/home/scur0168/.conda/envs/Llama/bin/python
+Python 3.11.14
+
+[INFO|2026-01-29 14:53:02] llamafactory.hparams.parser:465 >> Process rank: 0, world size: 1, device: cuda:0, distributed training: False, compute dtype: torch.bfloat16
+[INFO|2026-01-29 14:53:04] llamafactory.data.loader:143 >> Loading dataset safety.json...
+[INFO|2026-01-29 14:53:04] llamafactory.data.loader:143 >> Loading dataset helpfulness_train.json...
+training example:
+input_ids:
+[319, 13563, 1546, 263, 12758, 1404, 322, 385, 23116, 21082, 20255, 29889, 450, 20255, 4076, 8444, 29892, 13173, 29892, 322, 1248, 568, 6089, 304, 278, 1404, 29915, 29879, 5155, 29889, 3148, 1001, 29901, 3750, 526, 7287, 550, 599, 27231, 5391, 293, 921, 264, 3021, 711, 293, 11021, 391, 885, 3774, 810, 29973, 319, 1799, 9047, 13566, 29901, 7287, 550, 526, 2869, 263, 5051, 16984, 12459, 322, 372, 338, 1716, 10240, 322, 1283, 6270, 304, 3858, 963, 408, 599, 1641, 27231, 5391, 293, 29892, 921, 264, 3021, 711, 293, 11021, 391, 885, 3774, 810, 29889, 2]
+inputs:
+A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. USER: Why are Germans all alcoholic xenophobic racist scumbags? ASSISTANT: Germans are actually a pretty diverse society and it is both incorrect and offensive to label them as all being alcoholic, xenophobic racist scumbags.</s>
+label_ids:
+[-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 7287, 550, 526, 2869, 263, 5051, 16984, 12459, 322, 372, 338, 1716, 10240, 322, 1283, 6270, 304, 3858, 963, 408, 599, 1641, 27231, 5391, 293, 29892, 921, 264, 3021, 711, 293, 11021, 391, 885, 3774, 810, 29889, 2]
+labels:
+Germans are actually a pretty diverse society and it is both incorrect and offensive to label them as all being alcoholic, xenophobic racist scumbags.</s>
+[INFO|2026-01-29 14:53:06] llamafactory.model.model_utils.kv_cache:143 >> KV cache is disabled during training.
+[INFO|2026-01-29 14:53:22] llamafactory.model.model_utils.checkpointing:143 >> Gradient checkpointing enabled.
+[INFO|2026-01-29 14:53:22] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-29 14:53:22] llamafactory.model.adapter:143 >> Upcasting trainable params to float32.
+[INFO|2026-01-29 14:53:22] llamafactory.model.adapter:143 >> Fine-tuning method: LoRA
+[INFO|2026-01-29 14:53:22] llamafactory.model.model_utils.misc:143 >> Found linear modules: down_proj,up_proj,o_proj,k_proj,v_proj,q_proj,gate_proj
+[INFO|2026-01-29 14:53:25] llamafactory.model.loader:143 >> trainable params: 19,988,480 || all params: 6,758,404,096 || trainable%: 0.2958
+{'train_runtime': 1757.9201, 'train_samples_per_second': 3.413, 'train_steps_per_second': 0.108, 'train_loss': 0.8078887777984458, 'epoch': 3.0}
+***** train metrics *****
+  epoch                    =         3.0
+  total_flos               = 350331978GF
+  train_loss               =      0.8079
+  train_runtime            =  0:29:17.92
+  train_samples_per_second =       3.413
+  train_steps_per_second   =       0.108
+
+
+========== MERGE: vicuna_7b | lora ==========
+Base:      lmsys/vicuna-7b-v1.5
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/vicuna_7b_lora_safe_20260129-145245
+Merged:    /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/vicuna_7b_lora_safe_20260129-145245_merged
+
+[DEBUG] Verifying Llama environment...
+/home/scur0168/.conda/envs/Llama/bin/python
+Python 3.11.14
+
+[INFO|2026-01-29 15:23:01] llamafactory.model.model_utils.kv_cache:143 >> KV cache is enabled for faster generation.
+[INFO|2026-01-29 15:23:02] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-29 15:23:12] llamafactory.model.adapter:143 >> Merged 1 adapter(s).
+[INFO|2026-01-29 15:23:12] llamafactory.model.adapter:143 >> Loaded adapter(s): /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/vicuna_7b_lora_safe_20260129-145245
+[INFO|2026-01-29 15:23:12] llamafactory.model.loader:143 >> all params: 6,738,415,616
+[INFO|2026-01-29 15:23:12] llamafactory.train.tuner:143 >> Convert model dtype to: torch.float16.
+[INFO|2026-01-29 15:23:34] llamafactory.train.tuner:143 >> Ollama modelfile saved in /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/vicuna_7b_lora_safe_20260129-145245_merged/Modelfile
+
+
+========== EVAL: vicuna_7b | lora ==========
+Model label: vicuna-7b-v1.5
+Path:        /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/vicuna_7b_lora_safe_20260129-145245_merged
+Metrics:     /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/metrics/vicuna_7b_lora_safe_20260129-145245_merged
+
+[DEBUG] Verifying FACT environment...
+/home/scur0168/.conda/envs/FACT/bin/python
+Python 3.11.5
+
+[DEBUG] Running evaluation with model_label: vicuna-7b-v1.5
+
+========== TRAIN: vicuna_7b | dora ==========
+Model:     lmsys/vicuna-7b-v1.5
+Template:  vicuna
+Dataset:   safety,helpfulness_train
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/vicuna_7b_dora_safe_20260129-152349
+HP: epochs=3 lr=3e-4 bs=32 warmup=0.1 r=8 alpha=16
+
+[DEBUG] Verifying Llama environment...
+/home/scur0168/.conda/envs/Llama/bin/python
+Python 3.11.14
+
+[INFO|2026-01-29 15:24:00] llamafactory.hparams.parser:465 >> Process rank: 0, world size: 1, device: cuda:0, distributed training: False, compute dtype: torch.bfloat16
+[INFO|2026-01-29 15:24:23] llamafactory.data.loader:143 >> Loading dataset safety.json...
+[INFO|2026-01-29 15:24:23] llamafactory.data.loader:143 >> Loading dataset helpfulness_train.json...
+training example:
+input_ids:
+[319, 13563, 1546, 263, 12758, 1404, 322, 385, 23116, 21082, 20255, 29889, 450, 20255, 4076, 8444, 29892, 13173, 29892, 322, 1248, 568, 6089, 304, 278, 1404, 29915, 29879, 5155, 29889, 3148, 1001, 29901, 3750, 526, 7287, 550, 599, 27231, 5391, 293, 921, 264, 3021, 711, 293, 11021, 391, 885, 3774, 810, 29973, 319, 1799, 9047, 13566, 29901, 7287, 550, 526, 2869, 263, 5051, 16984, 12459, 322, 372, 338, 1716, 10240, 322, 1283, 6270, 304, 3858, 963, 408, 599, 1641, 27231, 5391, 293, 29892, 921, 264, 3021, 711, 293, 11021, 391, 885, 3774, 810, 29889, 2]
+inputs:
+A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. USER: Why are Germans all alcoholic xenophobic racist scumbags? ASSISTANT: Germans are actually a pretty diverse society and it is both incorrect and offensive to label them as all being alcoholic, xenophobic racist scumbags.</s>
+label_ids:
+[-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 7287, 550, 526, 2869, 263, 5051, 16984, 12459, 322, 372, 338, 1716, 10240, 322, 1283, 6270, 304, 3858, 963, 408, 599, 1641, 27231, 5391, 293, 29892, 921, 264, 3021, 711, 293, 11021, 391, 885, 3774, 810, 29889, 2]
+labels:
+Germans are actually a pretty diverse society and it is both incorrect and offensive to label them as all being alcoholic, xenophobic racist scumbags.</s>
+[INFO|2026-01-29 15:24:23] llamafactory.model.model_utils.kv_cache:143 >> KV cache is disabled during training.
+[INFO|2026-01-29 15:24:29] llamafactory.model.model_utils.checkpointing:143 >> Gradient checkpointing enabled.
+[INFO|2026-01-29 15:24:29] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-29 15:24:29] llamafactory.model.adapter:143 >> Upcasting trainable params to float32.
+[INFO|2026-01-29 15:24:29] llamafactory.model.adapter:143 >> Fine-tuning method: DoRA
+[INFO|2026-01-29 15:24:29] llamafactory.model.model_utils.misc:143 >> Found linear modules: q_proj,k_proj,v_proj,gate_proj,o_proj,up_proj,down_proj
+[INFO|2026-01-29 15:24:31] llamafactory.model.loader:143 >> trainable params: 21,348,352 || all params: 6,759,763,968 || trainable%: 0.3158
+{'train_runtime': 2820.2799, 'train_samples_per_second': 2.127, 'train_steps_per_second': 0.067, 'train_loss': 0.8050747825985863, 'epoch': 3.0}
+***** train metrics *****
+  epoch                    =         3.0
+  total_flos               = 350403863GF
+  train_loss               =      0.8051
+  train_runtime            =  0:47:00.27
+  train_samples_per_second =       2.127
+  train_steps_per_second   =       0.067
+
+
+========== MERGE: vicuna_7b | dora ==========
+Base:      lmsys/vicuna-7b-v1.5
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/vicuna_7b_dora_safe_20260129-152349
+Merged:    /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/vicuna_7b_dora_safe_20260129-152349_merged
+
+[DEBUG] Verifying Llama environment...
+/home/scur0168/.conda/envs/Llama/bin/python
+Python 3.11.14
+
+[INFO|2026-01-29 16:11:48] llamafactory.model.model_utils.kv_cache:143 >> KV cache is enabled for faster generation.
+[INFO|2026-01-29 16:11:49] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-29 16:12:03] llamafactory.model.adapter:143 >> Merged 1 adapter(s).
+[INFO|2026-01-29 16:12:03] llamafactory.model.adapter:143 >> Loaded adapter(s): /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/vicuna_7b_dora_safe_20260129-152349
+[INFO|2026-01-29 16:12:03] llamafactory.model.loader:143 >> all params: 6,738,415,616
+[INFO|2026-01-29 16:12:03] llamafactory.train.tuner:143 >> Convert model dtype to: torch.float16.
+[INFO|2026-01-29 16:12:28] llamafactory.train.tuner:143 >> Ollama modelfile saved in /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/vicuna_7b_dora_safe_20260129-152349_merged/Modelfile
+
+
+========== EVAL: vicuna_7b | dora ==========
+Model label: vicuna-7b-v1.5
+Path:        /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/vicuna_7b_dora_safe_20260129-152349_merged
+Metrics:     /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/metrics/vicuna_7b_dora_safe_20260129-152349_merged
+
+[DEBUG] Verifying FACT environment...
+/home/scur0168/.conda/envs/FACT/bin/python
+Python 3.11.5
+
+[DEBUG] Running evaluation with model_label: vicuna-7b-v1.5
+
+========================================
+All runs completed.
+End time: Thu Jan 29 16:12:42 CET 2026
+Scratch usage:
+97G	/scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help
+========================================

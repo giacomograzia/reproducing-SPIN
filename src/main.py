@@ -42,8 +42,15 @@ def main():
         type=float,
         default=5e-7,
     )
+    parser.add_argument("--score_dir", type=str, default="significance_score") # added for scratch - Group 23
+    parser.add_argument("--model_dir", type=str, default="./") # added for scratch - Group 23
+    parser.add_argument("--dataset_nsamples", type=int, default=None) # added for limited data experiment - Group 23
+    parser.add_argument("--locating_method", type=str, default="importance",
+                    choices=["importance", "random", "wanda", "sparsegpt", "grad_x_act"]) # added for neuron locating - Group 23 
 
     args = parser.parse_args()
+    if args.dataset_nsamples is None:
+        args.dataset_nsamples = args.nsamples
     print(args)
 
     # Setting seeds for reproducibility
@@ -65,17 +72,43 @@ def main():
 
 
     # ================== save the model after applying SPIN =====================
+    # spin_path = os.path.join(
+    #     './',
+    #     f"{args.model_path.split('/')[-1]}_target_module_{args.target_module}_ratio_{args.p}",
+    # )
     spin_path = os.path.join(
-        './',
-        f"{args.model_path.split('/')[-1]}_target_module_{args.target_module}_ratio_{args.p}",
+        args.model_dir,
+        f"{args.model_path.split('/')[-1]}_{args.locating_method}_target_module_{args.target_module}_ratio_{args.p}",
     )
+
+    if not os.path.exists(spin_path):
+        os.makedirs(spin_path)
+
+    # Fix Vicuna GenerationConfig saving issue (Transformers strict validation) - Group 23
+    try:
+        gen_cfg = model.generation_config
+        if hasattr(gen_cfg, "do_sample") and gen_cfg.do_sample is False:
+            if hasattr(gen_cfg, "temperature"):
+                gen_cfg.temperature = None
+            if hasattr(gen_cfg, "top_p"):
+                gen_cfg.top_p = None
+    except Exception as e:
+        print(f"[Warn] Could not sanitize generation_config: {e}")
+
     model.save_pretrained(spin_path)
     tokenizer.save_pretrained(spin_path)
 
+    # Free HF model before launching vLLM to avoid OOM - Group 23
+    ############################
+    import gc
+    del model
+    torch.cuda.empty_cache()
+    gc.collect()
+    ############################
 
     trust_results = {}
 
-    vllm_model = LLM(model=spin_path, gpu_memory_utilization=0.6)
+    vllm_model = LLM(model=spin_path, gpu_memory_utilization=0.45) # lowered gpu_memory_utilization from 0.6 to 0.45 to avoid OOM - Group 23
 
     eval_model = AutoModelForCausalLM.from_pretrained("OpenSafetyLab/MD-Judge-v0.1").to("cuda")
 

@@ -1,6 +1,27 @@
 ## F.A.C.T AI - Group 23
 # The Tug of War Within: Mitigating the Fairness-Privacy Conflicts in Large Language Models
 
+## Repository Navigation
+
+This repository is organized to support reproducibility and clear separation of concerns. Each subfolder includes its own **README.md** with detailed instructions. Start here based on your goal:
+
+- **[src/README.md](src/README.md)**: Core experiment scripts and evaluation tools.
+- **[reproduction/README.md](reproduction/README.md)**: End-to-end pipelines for reproducing SFT methods (FFT, LoRA, DoRA).
+  - **[reproduction/FFT/README.md](reproduction/FFT/README.md)**: Full fine-tuning experiments.
+  - **[reproduction/LoRA-DoRA/FT-safe-datasets/README.md](reproduction/LoRA-DoRA/FT-safe-datasets/README.md)**: LoRA/DoRA on safe datasets.
+  - **[reproduction/LoRA-DoRA/FT-unsafe-datasets/README.md](reproduction/LoRA-DoRA/FT-unsafe-datasets/README.md)**: LoRA/DoRA on unsafe datasets.
+- **LlamaFactory**: Fine-tuning framework (in `LlamaFactory/` submodule). Training and merging pipelines in `reproduction/` use LlamaFactory for all SFT-based experiments. See [reproduction/README.md](reproduction/README.md) for conda environment setup and commands.
+
+## Reproducibility Standards
+
+This repository follows best practices for clarity and reproducibility:
+
+- **Modular structure**: Core logic in `src/`, reproducible pipelines in `reproduction/`.
+- **Documented hyperparameters**: All paper hyperparameters (Quian et al, 2025; Appendix F) are explicitly set in job scripts and command examples.
+- **Environment management**: `environment.yml` defines exact Python and package versions.
+- **Local readmes**: Each major folder has a README with context, usage, and hyperparameters.
+- **Slurm integration**: Reproducible cluster runs with pre-configured job templates.
+
 ### Environment Setup
 
 ```bash
@@ -9,20 +30,8 @@ conda activate FACT
 ```
 NOTE: You can replace conda with micromamba or whichever version you have locally.
 
-### Tracking resources locally 
-The environment file already contains the `codecarbon` package. Once installed:
-```bash
-# requires creating a token on the platform
-codecarbon login 
 
-# follow instructions to set it up locally
-codecarbon config
-
-# monitor used resources in a separate terminal
-codecarbon monitor 
-```
-
-## Original instructions
+## ReadMe Information from Original Paper
 ## 🌈 Introduction
 
 

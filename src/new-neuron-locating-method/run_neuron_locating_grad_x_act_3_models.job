@@ -1,0 +1,115 @@
+#!/bin/bash
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=NeuLoc_SPIN_grad_x_act_3LLMs
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=06:00:00
+#SBATCH --output=ext_NeuLoc_SPIN_grad_x_act_3LLMs_%A.out
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+source activate FACT
+
+SCOREDIR="/scratch-shared/scur0168/significance_score"
+MODELDIR="/scratch-shared/scur0168/models"
+
+NSAMPLES=128
+SEED=0
+
+# New locating method
+METHODS=("grad_x_act")
+
+# Same ratios for all runs (edit if needed)
+P_RATIO="5e-7"
+Q_RATIO="5e-7"
+TARGET_MODULE="mlp"
+
+# Datasets used in your pipeline
+DATA_GENERAL="alpaca_cleaned_no_safety"
+DATA_PRIV="beaver_train330k_privacy_safe_1k"
+DATA_FAIR="beaver_train330k_fairness_safe_1k"
+
+# Models to loop over: (label, hf_path)
+MODEL_LABELS=("vicuna-7b-v1.5" "mistral-7b-instruct-v0.2" "qwen2-7b-instruct")
+MODEL_PATHS=("lmsys/vicuna-7b-v1.5" "mistralai/Mistral-7B-Instruct-v0.2" "Qwen/Qwen2-7B-Instruct")
+
+# Safety check
+if [ ${#MODEL_LABELS[@]} -ne ${#MODEL_PATHS[@]} ]; then
+  echo "ERROR: MODEL_LABELS and MODEL_PATHS must have the same length."
+  exit 1
+fi
+
+for METHOD in "${METHODS[@]}"; do
+  echo "===================== METHOD: ${METHOD} ====================="
+
+  for idx in "${!MODEL_LABELS[@]}"; do
+    MODEL_LABEL="${MODEL_LABELS[$idx]}"
+    MODEL_PATH="${MODEL_PATHS[$idx]}"
+
+    echo "--------------------- MODEL: ${MODEL_LABEL} (${MODEL_PATH}) ---------------------"
+
+    # 1) Compute scores on: general + privacy + fairness
+    srun python compute_importance_score.py \
+      --model "${MODEL_LABEL}" \
+      --model_path "${MODEL_PATH}" \
+      --locating_method "${METHOD}" \
+      --dataset "${DATA_GENERAL}" \
+      --nsamples ${NSAMPLES} \
+      --seed ${SEED} \
+      --score_dir ${SCOREDIR}
+
+    srun python compute_importance_score.py \
+      --model "${MODEL_LABEL}" \
+      --model_path "${MODEL_PATH}" \
+      --locating_method "${METHOD}" \
+      --dataset "${DATA_PRIV}" \
+      --nsamples ${NSAMPLES} \
+      --seed ${SEED} \
+      --score_dir ${SCOREDIR}
+
+    srun python compute_importance_score.py \
+      --model "${MODEL_LABEL}" \
+      --model_path "${MODEL_PATH}" \
+      --locating_method "${METHOD}" \
+      --dataset "${DATA_FAIR}" \
+      --nsamples ${NSAMPLES} \
+      --seed ${SEED} \
+      --score_dir ${SCOREDIR}
+
+    # 2) SPIN + evaluation
+    LOG="spin_eval_${MODEL_LABEL}_${METHOD}.log"
+
+    srun python main.py \
+      --model "${MODEL_LABEL}" \
+      --model_path "${MODEL_PATH}" \
+      --locating_method "${METHOD}" \
+      --dataset1 "${DATA_PRIV}" \
+      --dataset2 "${DATA_FAIR}" \
+      --target_module "${TARGET_MODULE}" \
+      --p "${P_RATIO}" \
+      --q "${Q_RATIO}" \
+      --nsamples ${NSAMPLES} \
+      --seed ${SEED} \
+      --score_dir ${SCOREDIR} \
+      --model_dir ${MODELDIR} \
+    | tee "${LOG}"
+
+  done
+done
+
+echo "===================== SUMMARY (trustworthy results) ====================="
+for METHOD in "${METHODS[@]}"; do
+  for idx in "${!MODEL_LABELS[@]}"; do
+    MODEL_LABEL="${MODEL_LABELS[$idx]}"
+    LOG="spin_eval_${MODEL_LABEL}_${METHOD}.log"
+    echo "[MODEL=${MODEL_LABEL} METHOD=${METHOD}]"
+    awk '
+      /trustworthy results here/ {flag=1; next}
+      flag==1 && $0 ~ /^\{/ {print; exit}
+    ' "${LOG}"
+  done
+done
+echo "========================================================================="

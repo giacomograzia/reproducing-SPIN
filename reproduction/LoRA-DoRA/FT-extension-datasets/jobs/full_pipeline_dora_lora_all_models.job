@@ -1,0 +1,331 @@
+#!/bin/bash
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=full_pipeline_dora_lora_all_models
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=20:00:00
+#SBATCH --output=full_pipeline_dora_lora_all_models_%A.out
+#SBATCH --error=full_pipeline_dora_lora_all_models_%A.err
+
+set -euo pipefail
+trap 'echo "[ERROR] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+if [ -f "$CONDA_ROOT/etc/profile.d/conda.sh" ]; then
+  # shellcheck disable=SC1091
+  source "$CONDA_ROOT/etc/profile.d/conda.sh"
+else
+  echo "[ERROR] conda.sh not found at $CONDA_ROOT; aborting." >&2
+  exit 1
+fi
+
+# =============================================================================
+# PATHS
+# =============================================================================
+PROJECT_HOME="$HOME/fact-ai-group-23"
+LLAMA_FACTORY_DIR="$PROJECT_HOME/LlamaFactory"
+SRC_DIR="$PROJECT_HOME/src"
+
+SCRATCH_SHARED="${SCRATCH_SHARED:-/scratch-shared/$USER}"
+[ -d "$SCRATCH_SHARED" ] || { echo "[ERROR] scratch-shared not found: $SCRATCH_SHARED" >&2; exit 1; }
+
+# ---- NEW: extension root ----
+EXT_ROOT="$SCRATCH_SHARED/fact-ai-group-23/extension"
+RUN_ROOT="$EXT_ROOT/runs"
+mkdir -p "$RUN_ROOT"
+
+SAVES_ROOT="$RUN_ROOT/llamafactory_saves_safe_help"
+ADAPTER_ROOT="$SAVES_ROOT/adapters"
+MERGED_ROOT="$SAVES_ROOT/merged"
+CFG_ROOT="$SAVES_ROOT/merge_cfgs"
+METRICS_ROOT="$SAVES_ROOT/metrics"
+mkdir -p "$ADAPTER_ROOT" "$MERGED_ROOT" "$CFG_ROOT" "$METRICS_ROOT"
+
+LOG_DIR="$PROJECT_HOME/reproduction/extension/logs"
+mkdir -p "$LOG_DIR"
+
+# =============================================================================
+# DATASETS (SAFETY + HELPFULNESS)  <<< CHANGE THESE KEYS >>>
+# =============================================================================
+SAFETY_DATASET="safety"             # must exist in LlamaFactory/data/dataset_info.json
+HELPFULNESS_DATASET="helpfulness_train"  # must exist in LlamaFactory/data/dataset_info.json
+COMBINED_DATASET="${SAFETY_DATASET},${HELPFULNESS_DATASET}"
+
+# Eval params
+EVAL_SAFETY_CATEGORY="safety"
+EVAL_HELP_DATASET="$SRC_DIR/data/helpfulness_test.csv"  # if your load_dataset expects a path, replace with the CSV path
+
+# =============================================================================
+# PRE-FLIGHT CHECKS
+# =============================================================================
+echo "========================================"
+echo "Preflight checks"
+echo "Start time: $(date)"
+echo "EXT_ROOT:   $EXT_ROOT"
+echo "========================================"
+
+df -h "$SCRATCH_SHARED" || true
+
+conda info --envs | grep -q "Llama" || { echo "[ERROR] conda env Llama missing" >&2; exit 1; }
+conda info --envs | grep -q "FACT" || { echo "[ERROR] conda env FACT missing" >&2; exit 1; }
+
+[ -d "$LLAMA_FACTORY_DIR" ] || { echo "[ERROR] LlamaFactory dir missing: $LLAMA_FACTORY_DIR" >&2; exit 1; }
+[ -d "$SRC_DIR" ] || { echo "[ERROR] src dir missing: $SRC_DIR" >&2; exit 1; }
+
+DATASET_INFO="$LLAMA_FACTORY_DIR/data/dataset_info.json"
+if [ -f "$DATASET_INFO" ]; then
+  grep -q "\"$SAFETY_DATASET\"" "$DATASET_INFO" || echo "[WARN] $SAFETY_DATASET not found in $DATASET_INFO (verify dataset registration)."
+  grep -q "\"$HELPFULNESS_DATASET\"" "$DATASET_INFO" || echo "[WARN] $HELPFULNESS_DATASET not found in $DATASET_INFO (verify dataset registration)."
+else
+  echo "[WARN] dataset_info.json not found at $DATASET_INFO."
+fi
+
+# =============================================================================
+# MODELS
+# =============================================================================
+declare -A MODEL_PATH TEMPLATE MODEL_LABEL
+
+MODEL_PATH[qwen2_7b]="Qwen/Qwen2-7B-Instruct"
+TEMPLATE[qwen2_7b]="qwen"
+MODEL_LABEL[qwen2_7b]="qwen2-7b-instruct"
+
+MODEL_PATH[mistral_7b]="mistralai/Mistral-7B-Instruct-v0.2"
+TEMPLATE[mistral_7b]="mistral"
+MODEL_LABEL[mistral_7b]="mistral-7b-instruct"
+
+MODELS=(qwen2_7b mistral_7b)
+
+# =============================================================================
+# METHODS
+# =============================================================================
+METHODS=(lora dora)
+
+# =============================================================================
+# HYPERPARAMETERS
+# =============================================================================
+EPOCHS="3"
+LR="3e-4"
+BATCH_SIZE="4"
+SCHEDULER="cosine"
+WARMUP_RATIO="0.1"
+
+OPTIM="adamw_torch"
+ADAM_BETA1="0.9"
+ADAM_BETA2="0.999"
+ADAM_EPS="1e-8"
+WEIGHT_DECAY="0.0"
+
+LORA_RANK="8"
+LORA_ALPHA="16"
+
+BF16="True"
+GRAD_ACC="8"
+GRAD_CHECKPOINTING="True"
+
+DRY_RUN="${DRY_RUN:-0}"
+
+# =============================================================================
+# FUNCTIONS
+# =============================================================================
+train_model() {
+  local method="$1"
+  local model_key="$2"
+
+  local model_path="${MODEL_PATH[$model_key]}"
+  local template="${TEMPLATE[$model_key]}"
+
+  local run_id
+  run_id="$(date +%Y%m%d-%H%M%S)"
+
+  local tag="${model_key}_${method}_safe_help_${run_id}"
+  local out_dir="$ADAPTER_ROOT/$tag"
+
+  echo ""
+  echo "========== TRAIN: ${model_key} | ${method} =========="
+  echo "Model:     $model_path"
+  echo "Template:  $template"
+  echo "Dataset:   $COMBINED_DATASET"
+  echo "Adapter:   $out_dir"
+  echo ""
+
+  cd "$LLAMA_FACTORY_DIR"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    mkdir -p "$out_dir"
+    echo "[DRY RUN] Skipping training; created adapter dir: $out_dir"
+    TRAIN_RESULT="$out_dir"
+    return 0
+  fi
+
+  conda run -n Llama bash -c "which python && python -V" >/dev/null
+
+  local dora_args=()
+  if [ "$method" = "dora" ]; then
+    dora_args+=( --use_dora True )
+  fi
+
+  conda run -n Llama python -m llamafactory.cli train \
+    --stage sft \
+    --do_train True \
+    --model_name_or_path "$model_path" \
+    --finetuning_type lora \
+    --template "$template" \
+    --trust_remote_code True \
+    --dataset_dir data \
+    --dataset "$COMBINED_DATASET" \
+    --num_train_epochs "$EPOCHS" \
+    --learning_rate "$LR" \
+    --per_device_train_batch_size "$BATCH_SIZE" \
+    --gradient_accumulation_steps "$GRAD_ACC" \
+    --gradient_checkpointing "$GRAD_CHECKPOINTING" \
+    --lr_scheduler_type "$SCHEDULER" \
+    --warmup_ratio "$WARMUP_RATIO" \
+    --optim "$OPTIM" \
+    --adam_beta1 "$ADAM_BETA1" \
+    --adam_beta2 "$ADAM_BETA2" \
+    --adam_epsilon "$ADAM_EPS" \
+    --weight_decay "$WEIGHT_DECAY" \
+    --lora_rank "$LORA_RANK" \
+    --lora_alpha "$LORA_ALPHA" \
+    "${dora_args[@]}" \
+    --bf16 "$BF16" \
+    --report_to none \
+    --output_dir "$out_dir"
+
+  [ -d "$out_dir" ] || { echo "[ERROR] Training failed: adapter dir not created at $out_dir" >&2; exit 1; }
+  TRAIN_RESULT="$out_dir"
+}
+
+merge_model() {
+  local model_key="$1"
+  local adapter_dir="$2"
+
+  local base_model="${MODEL_PATH[$model_key]}"
+  local template="${TEMPLATE[$model_key]}"
+
+  local tag
+  tag="$(basename "$adapter_dir")"
+
+  local merged_dir="$MERGED_ROOT/${tag}_merged"
+  local cfg="$CFG_ROOT/merge_${tag}.yaml"
+
+  echo ""
+  echo "========== MERGE: ${model_key} =========="
+  echo "Base:      $base_model"
+  echo "Adapter:   $adapter_dir"
+  echo "Merged:    $merged_dir"
+  echo ""
+
+  cd "$LLAMA_FACTORY_DIR"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    mkdir -p "$merged_dir"
+    echo "[DRY RUN] Skipping merge; created merged dir: $merged_dir"
+    MERGE_RESULT="$merged_dir"
+    return 0
+  fi
+
+  conda run -n Llama bash -c "which python && python -V" >/dev/null
+
+  cat > "$cfg" << EOF
+### model
+model_name_or_path: $base_model
+adapter_name_or_path: $adapter_dir
+template: $template
+trust_remote_code: true
+
+### export
+export_dir: $merged_dir
+export_size: 5
+export_device: cpu
+export_legacy_format: false
+EOF
+
+  conda run -n Llama python -m llamafactory.cli export "$cfg"
+  [ -d "$merged_dir" ] || { echo "[ERROR] Merge failed: merged dir not created at $merged_dir" >&2; exit 1; }
+  MERGE_RESULT="$merged_dir"
+}
+
+evaluate_model() {
+  local model_key="$1"
+  local merged_dir="$2"
+
+  local model_label="${MODEL_LABEL[$model_key]}"
+  local tag
+  tag="$(basename "$merged_dir")"
+  local metrics_dir="$METRICS_ROOT/$tag"
+  mkdir -p "$metrics_dir"
+
+  echo ""
+  echo "========== EVAL (SAFETY + HELPFULNESS): ${model_key} =========="
+  echo "Model label: $model_label"
+  echo "Model path:  $merged_dir"
+  echo "Metrics dir: $metrics_dir"
+  echo ""
+
+  if [ "$DRY_RUN" = "1" ]; then
+    echo "[DRY RUN] Skipping eval."
+    return 0
+  fi
+
+  conda run -n FACT bash -c "which python && python -V" >/dev/null
+
+  # ---- SAFETY (MD-Judge) ----
+  cd "$SRC_DIR"
+  conda run -n FACT python eval_safety.py \
+    --model "$model_label" \
+    --model_path "$merged_dir" \
+    --seed 0 \
+    --category "$EVAL_SAFETY_CATEGORY" \
+    >"$metrics_dir/safety_eval.out" 2>"$metrics_dir/safety_eval.err"
+
+
+  # ---- HELPFULNESS (Prometheus-2 absolute) ----
+  # Ensure this file exists in $SRC_DIR and contains your helpfulness main()
+  cd "$SRC_DIR"
+  conda run -n FACT python eval_run.py \
+    --model_path "$merged_dir" \
+    --dataset "$EVAL_HELP_DATASET" \
+    --seed 0 \
+    >"$metrics_dir/helpfulness_eval.out" 2>"$metrics_dir/helpfulness_eval.err"
+}
+
+# =============================================================================
+# MAIN
+# =============================================================================
+echo ""
+echo "========================================"
+echo "Pipeline: Train -> Merge -> Eval (EXTENSION)"
+echo "Train datasets: $COMBINED_DATASET"
+echo "Safety eval category: $EVAL_SAFETY_CATEGORY"
+echo "Helpfulness eval dataset arg: $EVAL_HELP_DATASET"
+echo "Outputs under: $EXT_ROOT"
+echo "Start time: $(date)"
+echo "========================================"
+
+for method in "${METHODS[@]}"; do
+  for model_key in "${MODELS[@]}"; do
+    TRAIN_RESULT=""
+    train_model "$method" "$model_key"
+    adapter_dir="$TRAIN_RESULT"
+
+    MERGE_RESULT=""
+    merge_model "$model_key" "$adapter_dir"
+    merged_dir="$MERGE_RESULT"
+
+    evaluate_model "$model_key" "$merged_dir"
+  done
+done
+
+echo ""
+echo "========================================"
+echo "All runs completed."
+echo "End time: $(date)"
+echo "Scratch usage:"
+du -sh "$EXT_ROOT" || true
+echo "========================================"

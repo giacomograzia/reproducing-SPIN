@@ -1,0 +1,29 @@
+========================================
+Preflight checks
+Start time: Thu Jan 29 16:24:08 CET 2026
+Scratch root: /scratch-shared/scur0168/fact-ai-group-23/extension/runs
+========================================
+Filesystem      Size  Used Avail Use% Mounted on
+wstor_scratch1  2.5P  425T  2.1P  18% /gpfs/scratch1
+
+========================================
+Pipeline: Train -> Merge -> Eval (SAFE)
+Datasets: safety,helpfulness_train
+Start time: Thu Jan 29 16:24:12 CET 2026
+Outputs:
+  Adapters: /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters
+  Merged:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged
+  Metrics:  /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/metrics
+========================================
+
+========== TRAIN: vicuna_7b | lora ==========
+Model:     lmsys/vicuna-7b-v1.5
+Template:  vicuna
+Dataset:   safety,helpfulness_train
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/vicuna_7b_lora_safe_20260129-162412
+HP: epochs=3 lr=3e-4 bs=32 warmup=0.1 r=8 alpha=16
+
+[DEBUG] Verifying Llama environment...
+/home/scur0168/.conda/envs/Llama/bin/python
+Python 3.11.14
+

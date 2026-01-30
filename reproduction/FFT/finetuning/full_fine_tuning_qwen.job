@@ -1,0 +1,87 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Qwen_FFT
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=04:00:00
+#SBATCH --output=reproduction/FFT/slurm_output_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/LlamaFactory/
+
+source activate LlFactory
+
+# python -m llamafactory.cli train \
+#   --stage sft \
+#   --do_train True \
+#   --model_name_or_path Qwen/Qwen2-7B-Instruct \
+#   --preprocessing_num_workers 16 \
+#   --finetuning_type full \
+#   --template qwen \
+#   --flash_attn auto \
+#   --dataset_dir data \
+#   --dataset beaver_train330k_privacy_safe_1k,beaver_train330k_fairness_safe_1k \
+#   --cutoff_len 2048 \
+#   --learning_rate 5e-06 \
+#   --num_train_epochs 3.0 \
+#   --max_samples 100000 \
+#   --per_device_train_batch_size 2 \
+#   --gradient_accumulation_steps 8 \
+#   --gradient_checkpointing True \
+#   --lr_scheduler_type cosine \
+#   --max_grad_norm 1.0 \
+#   --logging_steps 5 \
+#   --save_steps 100 \
+#   --warmup_ratio 0.1 \
+#   --packing False \
+#   --enable_thinking True \
+#   --report_to none \
+#   --output_dir saves/FFT/Qwen2-7B-Instruct/full/train_2026-01-20-01-16-01 \
+#   --bf16 True \
+#   --plot_loss True \
+#   --trust_remote_code True \
+#   --ddp_timeout 180000000 \
+#   --include_num_input_tok True \
+#   --optim adamw_bnb_8bit \
+#   --save_steps 1000
+
+
+python -m llamafactory.cli train \
+  --stage sft \
+  --do_train True \
+  --model_name_or_path Qwen/Qwen2-7B-Instruct \
+  --preprocessing_num_workers 16 \
+  --finetuning_type full \
+  --template qwen \
+  --flash_attn auto \
+  --dataset_dir data \
+  --dataset beaver_train330k_privacy_safe_1k,beaver_train330k_fairness_safe_1k \
+  --cutoff_len 2048 \
+  --learning_rate 5e-06 \
+  --num_train_epochs 3.0 \
+  --max_samples 100000 \
+  --per_device_train_batch_size 2 \
+  --gradient_accumulation_steps 8 \
+  --gradient_checkpointing True \
+  --lr_scheduler_type cosine \
+  --max_grad_norm 1.0 \
+  --logging_steps 5 \
+  --save_total_limit 5 \
+  --save_safetensors True \
+  --warmup_ratio 0.1 \
+  --packing False \
+  --enable_thinking True \
+  --report_to none \
+  --output_dir /scratch-shared/scur0168/FFT/Qwen2-7B-Instruct/full/train_2026-01-20-01-16-02 \
+  --bf16 True \
+  --plot_loss True \
+  --trust_remote_code True \
+  --ddp_timeout 180000000 \
+  --include_num_input_tok True \
+  --optim adamw_bnb_8bit \
+  --save_steps 1000

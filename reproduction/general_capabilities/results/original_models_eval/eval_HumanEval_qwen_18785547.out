@@ -1,0 +1,82 @@
+============================================================================================== 
+Warning! Mixing Conda and module environments may lead to corruption of the
+user environment. 
+We do not recommend users mixing those two environments unless absolutely
+necessary. Note that 
+SURF does not provide any support for Conda environment.
+For more information, please refer to our software policy page:
+https://servicedesk.surf.nl/wiki/display/WIKI/Software+policy+Snellius#SoftwarepolicySnellius-UseofAnacondaandMinicondaenvironmentsonSnellius 
+
+Remember that many packages have already been installed on the system and can
+be loaded using 
+the 'module load <package__name>' command. If you are uncertain if a package is
+already available 
+on the system, please use 'module avail' or 'module spider' to search for it.
+============================================================================================== 
+Name: deepeval
+Version: 3.8.1
+Summary: The LLM Evaluation Framework
+Home-page: https://github.com/confident-ai/deepeval
+Author: Jeffrey Ip
+Author-email: jeffreyip@confident-ai.com
+License: Apache-2.0
+Location: /gpfs/home4/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages
+Requires: aiohttp, click, grpcio, jinja2, nest_asyncio, openai, opentelemetry-api, opentelemetry-exporter-otlp-proto-grpc, opentelemetry-sdk, portalocker, posthog, pydantic, pydantic-settings, pyfiglet, pytest, pytest-asyncio, pytest-repeat, pytest-rerunfailures, pytest-xdist, python-dotenv, requests, rich, sentry-sdk, setuptools, tabulate, tenacity, tqdm, typer, wheel
+Required-by: 
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+
+Configuration:
+  Model name: qwen2-7b-instruct
+  Model path: /scratch-shared/scur0168/models_gc/Qwen2-7B-Instruct_target_module_mlp_ratio_5e-07/
+  Benchmark: humaneval
+
+Loading model from: /scratch-shared/scur0168/models_gc/Qwen2-7B-Instruct_target_module_mlp_ratio_5e-07/
+✓ Detected local model path
+Loading tokenizer...
+Loading model (this may take a while for large models)...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:00<00:02,  1.04it/s]Loading checkpoint shards:  50%|█████     | 2/4 [00:01<00:01,  1.06it/s]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:02<00:00,  1.12it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:02<00:00,  1.55it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:02<00:00,  1.34it/s]
+✓ Model loaded successfully: qwen2-7b-instruct
+  Model device: cuda:0
+  Tokenizer vocab size: 151646
+===== Starting HumanEval Evaluation =====
+
+===== Running HumanEval Benchmark =====
+Traceback (most recent call last):
+  File "/gpfs/home4/scur0168/fact-ai-group-23/reproduction/general_capabilities/eval_v2.py", line 194, in <module>
+    main()
+  File "/gpfs/home4/scur0168/fact-ai-group-23/reproduction/general_capabilities/eval_v2.py", line 167, in main
+    results = benchmark.evaluate(deepeval_model)
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/deepeval/benchmarks/human_eval/human_eval.py", line 110, in evaluate
+    golden: Golden = self.load_benchmark_dataset(task)
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/deepeval/benchmarks/human_eval/human_eval.py", line 210, in load_benchmark_dataset
+    dataset = load_dataset("openai_humaneval")
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/datasets/load.py", line 1488, in load_dataset
+    builder_instance = load_dataset_builder(
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/datasets/load.py", line 1133, in load_dataset_builder
+    dataset_module = dataset_module_factory(
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/datasets/load.py", line 1032, in dataset_module_factory
+    raise e1 from None
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/datasets/load.py", line 1007, in dataset_module_factory
+    ).get_module()
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/datasets/load.py", line 593, in get_module
+    standalone_yaml_path = cached_path(
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/datasets/utils/file_utils.py", line 180, in cached_path
+    ).resolve_path(url_or_filename)
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/huggingface_hub/hf_file_system.py", line 199, in resolve_path
+    repo_and_revision_exist, err = self._repo_and_revision_exist(repo_type, repo_id, revision)
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/huggingface_hub/hf_file_system.py", line 126, in _repo_and_revision_exist
+    self._api.repo_info(
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/huggingface_hub/hf_api.py", line 2867, in repo_info
+    return method(
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/huggingface_hub/hf_api.py", line 2731, in dataset_info
+    hf_raise_for_status(r)
+  File "/home/scur0168/.conda/envs/hellaswag_eval/lib/python3.10/site-packages/huggingface_hub/utils/_http.py", line 475, in hf_raise_for_status
+    raise _format(HfHubHTTPError, str(e), response) from e
+huggingface_hub.errors.HfHubHTTPError: 404 Client Error: Not Found for url: https://huggingface.co/api/datasets/openai_humaneval/revision/7dce6050a7d6d172f3cc5c32aa97f52fa1a2e544 (Request ID: Root=1-69795403-290baa356fabf9be47605c1b;7f528cc1-f175-4d1d-a362-83c2a2060b97)
+
+Sorry, we can't find the page you are looking for.

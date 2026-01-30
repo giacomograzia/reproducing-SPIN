@@ -1,0 +1,51 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=FFT_Qwen_smoke_test
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=00:05:00
+#SBATCH --output=reproduction/FFT/slurm_output_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/LlamaFactory/
+
+source activate LlFactory
+
+python -m llamafactory.cli train \
+  --stage sft \
+  --do_train True \
+  --model_name_or_path Qwen/Qwen2-7B-Instruct \
+  --finetuning_type full \
+  --template qwen \
+  --trust_remote_code True \
+  \
+  --dataset_dir data \
+  --dataset beaver_train330k_fairness_safe_1k \
+  \
+  --cutoff_len 128 \
+  --max_samples 2 \
+  \
+  --num_train_epochs 1 \
+  --per_device_train_batch_size 1 \
+  --gradient_accumulation_steps 1 \
+  \
+  --learning_rate 5e-06 \
+  --lr_scheduler_type cosine \
+  --optim adamw_bnb_8bit \
+  \
+  --logging_steps 1 \
+  --save_steps 20 \
+  \
+  --packing False \
+  --enable_thinking False \
+  --flash_attn disabled \
+  \
+  --bf16 True \
+  --report_to none \
+  \
+  --output_dir saves/smoke_test/qwen2_7b_full

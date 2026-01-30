@@ -1,0 +1,33 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Origin_Vicuna
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=06:00:00
+#SBATCH --output=Origin_Vicuna_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+
+# Run your code
+
+SCOREDIR="/scratch-shared/scur0168/significance_score"
+MODELDIR="/scratch-shared/scur0168/models"
+MODEL_LABEL="vicuna-7b-v1.5"
+MODEL_PATH="lmsys/vicuna-7b-v1.5"
+NSAMPLES=128
+SEED=0
+
+# Origin evaluation only (no SPIN, no importance scores)
+srun python eval_origin.py \
+  --model ${MODEL_LABEL} \
+  --model_path ${MODEL_PATH} \
+  --seed ${SEED}

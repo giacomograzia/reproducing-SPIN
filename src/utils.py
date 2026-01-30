@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import random
 import torch
 from datasets import load_dataset
@@ -38,7 +39,16 @@ def get_loaders(
 
 def get_custom(nsamples, seed, seqlen, tokenizer, disentangle=False, tag="filtered_bias"):
     # Load train and test datasets
-    data_files = {"train": f"data/{tag}.csv"}
+    if tag.endswith(".csv") or "/" in tag:
+        if tag.endswith(".csv"):
+            train_path = tag
+        else:
+            # Allow passing "data/foo" while the file on disk is "data/foo.csv".
+            candidate = f"{tag}.csv"
+            train_path = candidate if os.path.exists(candidate) else tag
+    else:
+        train_path = f"data/{tag}.csv"
+    data_files = {"train": train_path}
 
     traindata = load_dataset("csv", data_files=data_files, split="train")
     print('len(traindata)', len(traindata))  

@@ -1,0 +1,34 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=eval_mistral_fft_merged
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=06:00:00
+#SBATCH --output=reproduction/FFT/eval_mistral_fft_merged_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd "$HOME/fact-ai-group-23/src/"
+
+source activate FACT
+
+MODEL_LABEL="mistral-7b-instruct-v0.2"
+MODEL_PATH="/scratch-shared/scur0168/extension/FFT/Mistral-7b-Instruct/full/merged"
+SEED=0
+
+# Safety eval (MD-Judge, Salad-bench)
+srun python -u eval_safety.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --seed "${SEED}" \
+  --category "safety"
+
+# Helpfulness eval (Prometheus-2)
+srun python -u eval_run.py \
+  --model_path "${MODEL_PATH}" \
+  --dataset "data/helpfulness_test.csv" \
+  --seed "${SEED}"

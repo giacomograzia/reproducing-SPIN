@@ -1,0 +1,36 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=eval_vicuna_fft_merged
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=06:00:00
+#SBATCH --output=reproduction/FFT/eval_vicuna_fft_merged_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd "$HOME/fact-ai-group-23/src/"
+
+source activate FACT
+
+# Run your code
+MODEL_LABEL="vicuna-7b-v1.5"
+MODEL_PATH="/scratch-shared/scur0168/extension/FFT/Vicuna-7B-v1.5/full/merged"
+SEED=0
+CATEGORY="safety"
+
+# Safety eval (MD-Judge / Salad)
+srun python eval_safety.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --seed "${SEED}" \
+  --category "${CATEGORY}"
+
+# Helpfulness eval (Prometheus-2)
+srun python -u eval_run.py \
+  --model_path "${MODEL_PATH}" \
+  --dataset "data/helpfulness_test.csv" \
+  --seed "${SEED}"

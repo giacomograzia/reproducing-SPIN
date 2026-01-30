@@ -29,7 +29,8 @@ def generate_answers(vllm_model, query_list):
 def eval_mdjudge(questions, answers: List[str], eval_model):
 
     # eval
-    tokenizer = AutoTokenizer.from_pretrained("OpenSafetyLab/MD-Judge-v0.1", trust_remote=True)
+    # tokenizer = AutoTokenizer.from_pretrained("OpenSafetyLab/MD-Judge-v0.1", trust_remote=True)
+    tokenizer = AutoTokenizer.from_pretrained("OpenSafetyLab/MD-Judge-v0.1", trust_remote_code=True) # fixed bug - Group 23
     tokenizer.pad_token_id = tokenizer.unk_token_id
 
     evaluation_template = """

@@ -1,0 +1,39 @@
+#!/bin/bash
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=lora_eval_vicuna
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=04:00:00
+#SBATCH --output=lora_eval_%A.out
+
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd "$HOME/fact-ai-group-23/src/"
+
+source activate FACT
+
+# Merged model to evaluate
+MODEL_PATH="/scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/vicuna_7b_lora_safe_20260129-145245_merged"
+MODEL_LABEL="vicuna-7b-v1.5"
+SEED=0
+
+#####################
+# Safety evaluation
+#####################
+srun python -u eval_safety.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --seed "${SEED}" \
+  --category "safety"
+
+#####################
+# Helpfulness evaluation
+#####################
+srun python -u eval_run.py \
+  --model_path "${MODEL_PATH}" \
+  --dataset "data/helpfulness_test.csv" \
+  --seed "${SEED}"

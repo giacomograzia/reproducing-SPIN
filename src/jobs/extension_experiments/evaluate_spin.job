@@ -1,0 +1,51 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=evaluate_spin_vicuna
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=06:00:00
+#SBATCH --output=evaluate_spin_vicuna_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd "$HOME/fact-ai-group-23/src/"
+
+
+source activate FACT
+
+#####################
+# Set SPIN model path
+#####################
+SPIN_MODEL_DIR="/scratch-shared/scur0168/extension/models"
+BASE_MODEL_PATH="lmsys/vicuna-7b-v1.5"
+BASE_NAME="$(basename "${BASE_MODEL_PATH}")"
+
+LOCATING_METHOD="importance"
+TARGET_MODULE="mlp"
+P="5e-07"
+
+SPIN_MODEL_PATH="${SPIN_MODEL_DIR}/${BASE_NAME}_${LOCATING_METHOD}_target_module_${TARGET_MODULE}_ratio_${P}"
+MODEL_LABEL="spin-${BASE_NAME}"
+
+SEED=0
+
+#####################
+# Safety evaluation
+#####################
+srun python -u eval_safety.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${SPIN_MODEL_PATH}" \
+  --seed "${SEED}" \
+  --category "safety"
+
+#####################
+# Helpfulness evaluation
+#####################
+srun python -u eval_run.py \
+  --model_path "${SPIN_MODEL_PATH}" \
+  --dataset "data/helpfulness_test.csv" \
+  --seed "${SEED}"

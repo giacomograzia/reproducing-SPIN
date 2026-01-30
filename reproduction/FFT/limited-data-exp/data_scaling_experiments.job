@@ -1,0 +1,382 @@
+#!/bin/bash
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=DataScale_FFT
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=6:00:00
+#SBATCH --output=/home/scur0168/fact-ai-group-23/reproduction/FFT/logs/data_scale_%A.out
+#SBATCH --error=/home/scur0168/fact-ai-group-23/reproduction/FFT/logs/error_data_scale_%A.err
+
+set -euo pipefail
+
+# Safety patch: make failures actionable
+trap 'echo "[ERROR] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+# Initialize conda
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+if [ -f "$CONDA_ROOT/etc/profile.d/conda.sh" ]; then
+  source "$CONDA_ROOT/etc/profile.d/conda.sh"
+else
+  echo "[ERROR] conda.sh not found at $CONDA_ROOT; aborting." >&2
+  exit 1
+fi
+
+# =============================================================================
+# PATHS
+# =============================================================================
+PROJECT_HOME="$HOME/fact-ai-group-23"
+LLAMA_FACTORY_DIR="$PROJECT_HOME/LlamaFactory"
+SRC_DIR="$PROJECT_HOME/src"
+
+# Use scratch-shared for all checkpoints/adapters
+SCRATCH_SHARED="${SCRATCH_SHARED:-/scratch-shared/$USER}"
+[ -d "$SCRATCH_SHARED" ] || { echo "[ERROR] scratch-shared not found: $SCRATCH_SHARED" >&2; exit 1; }
+
+RUN_ROOT="$SCRATCH_SHARED/fact-ai-group-23-runs"
+SAVES_ROOT="$RUN_ROOT/llamafactory_data_scale"
+ADAPTER_ROOT="$SAVES_ROOT/adapters"
+MERGED_ROOT="$SAVES_ROOT/merged"
+CFG_ROOT="$SAVES_ROOT/merge_cfgs"
+METRICS_ROOT="$SAVES_ROOT/metrics"
+mkdir -p "$ADAPTER_ROOT" "$MERGED_ROOT" "$CFG_ROOT" "$METRICS_ROOT"
+
+LOG_DIR="/home/scur0168/fact-ai-group-23/reproduction/FFT/logs"
+mkdir -p "$LOG_DIR"
+
+# =============================================================================
+# EXPERIMENTAL DESIGN
+# =============================================================================
+# Dataset sizes to test (samples per dataset: privacy + fairness)
+# Total samples = size * 2 (e.g., 600 privacy + 600 fairness = 1200 total)
+DATASET_SIZES=(50 25 10)
+
+# Models to test (single model to reduce total runs)
+declare -A MODEL_PATH TEMPLATE MODEL_LABEL
+MODEL_PATH[qwen2_7b]="Qwen/Qwen2-7B-Instruct"
+TEMPLATE[qwen2_7b]="qwen"
+MODEL_LABEL[qwen2_7b]="qwen2-7b-instruct"
+
+MODELS=(qwen2_7b)
+
+# Methods to test
+METHODS=(fft)
+
+# =============================================================================
+# HYPERPARAMETERS (from paper)
+# =============================================================================
+EPOCHS="3"
+LR="5e-6"
+BATCH_SIZE="2"
+SCHEDULER="cosine"
+WARMUP_RATIO="0.1"
+
+OPTIM="adamw_bnb_8bit"
+
+BF16="True"
+GRAD_ACC="8" 
+
+# =============================================================================
+# PRE-FLIGHT CHECKS
+# =============================================================================
+echo "========================================"
+echo "Data Scaling Experiments: FFT"
+echo "Start time: $(date)"
+echo "Scratch root: $RUN_ROOT"
+echo "========================================"
+echo ""
+echo "Experimental design:"
+echo "  Models: ${MODELS[*]}"
+echo "  Methods: ${METHODS[*]}"
+echo "  Dataset sizes (per dataset): ${DATASET_SIZES[*]}"
+echo "  Total samples: $(for size in "${DATASET_SIZES[@]}"; do echo -n "$((size * 2)) "; done)"
+echo ""
+
+# Disk space snapshot
+df -h "$SCRATCH_SHARED" || true
+
+# Check conda envs exist
+conda info --envs | grep -q "LlFactory" || { echo "[ERROR] conda env LlFactory missing" >&2; exit 1; }
+conda info --envs | grep -q "FACT" || { echo "[ERROR] conda env FACT missing" >&2; exit 1; }
+
+# Check LlamaFactory exists
+[ -d "$LLAMA_FACTORY_DIR" ] || { echo "[ERROR] LlamaFactory dir missing: $LLAMA_FACTORY_DIR" >&2; exit 1; }
+
+# Check that subsampled datasets exist
+DATASET_INFO="$LLAMA_FACTORY_DIR/data/dataset_info.json"
+if [ -f "$DATASET_INFO" ]; then
+  for size in "${DATASET_SIZES[@]}"; do
+    grep -q "\"beaver_train330k_privacy_safe_${size}\"" "$DATASET_INFO" || {
+      echo "[ERROR] Dataset beaver_train330k_privacy_safe_${size} not found in dataset_info.json" >&2
+      echo "Please run create_subsampled_datasets.py first!" >&2
+      exit 1
+    }
+    grep -q "\"beaver_train330k_fairness_safe_${size}\"" "$DATASET_INFO" || {
+      echo "[ERROR] Dataset beaver_train330k_fairness_safe_${size} not found in dataset_info.json" >&2
+      echo "Please run create_subsampled_datasets.py first!" >&2
+      exit 1
+    }
+  done
+  echo "[OK] All required datasets found in dataset_info.json"
+else
+  echo "[ERROR] dataset_info.json not found at $DATASET_INFO" >&2
+  exit 1
+fi
+
+echo ""
+
+# =============================================================================
+# FUNCTIONS
+# =============================================================================
+train_model() {
+  local method="$1"
+  local model_key="$2"
+  local dataset_size="$3"
+
+  local model_path="${MODEL_PATH[$model_key]}"
+  local template="${TEMPLATE[$model_key]}"
+  
+  # Construct dataset names
+  local privacy_dataset="beaver_train330k_privacy_safe_${dataset_size}"
+  local fairness_dataset="beaver_train330k_fairness_safe_${dataset_size}"
+  local combined_dataset="${privacy_dataset},${fairness_dataset}"
+
+  local run_id
+  run_id="$(date +%Y%m%d-%H%M%S)"
+
+  local tag="${model_key}_${method}_n${dataset_size}_${run_id}"
+  local out_dir="$ADAPTER_ROOT/$tag"
+
+  echo ""
+  echo "========== TRAIN: ${model_key} | ${method} | n=${dataset_size} =========="
+  echo "Model:     $model_path"
+  echo "Template:  $template"
+  echo "Datasets:  $combined_dataset (${dataset_size} samples each = $((dataset_size * 2)) total)"
+  echo "Adapter:   $out_dir"
+  echo "HP: epochs=$EPOCHS lr=$LR bs=$BATCH_SIZE warmup=$WARMUP_RATIO"
+  echo ""
+
+  cd "$LLAMA_FACTORY_DIR"
+
+  # Sanity check before training
+  echo "[DEBUG] Verifying LlFactory environment..."
+  conda run -n LlFactory bash -c "which python && python -V" || {
+    echo "[ERROR] LlFactory environment verification failed" >&2
+    exit 1
+  }
+
+  # Use interleave_probs to ensure balanced 50/50 sampling
+  # This ensures we get exactly the same number of samples from each dataset
+  conda run -n LlFactory python -m llamafactory.cli train \
+    --stage sft \
+    --do_train True \
+    --model_name_or_path "$model_path" \
+    --preprocessing_num_workers 16 \
+    --finetuning_type full \
+    --template "$template" \
+    --trust_remote_code True \
+    --flash_attn auto \
+    --dataset_dir data \
+    --dataset "$combined_dataset" \
+    --cutoff_len 2048 \
+    --mix_strategy interleave_under \
+    --interleave_probs "0.5,0.5" \
+    --num_train_epochs "$EPOCHS" \
+    --learning_rate "$LR" \
+    --per_device_train_batch_size "$BATCH_SIZE" \
+    --gradient_accumulation_steps "$GRAD_ACC" \
+    --lr_scheduler_type "$SCHEDULER" \
+    --warmup_ratio "$WARMUP_RATIO" \
+    --packing False \
+    --enable_thinking True \
+    --optim "$OPTIM" \
+    --logging_steps 5 \
+    --trust_remote_code True \
+    --ddp_timeout 180000000 \
+    --include_num_input_tok True \
+    --bf16 "$BF16" \
+    --report_to none \
+    --output_dir "$out_dir" \
+    --save_steps 1000
+
+  # Verify adapter directory was created
+  if [ ! -d "$out_dir" ]; then
+    echo "[ERROR] Training failed: adapter directory not created at $out_dir" >&2
+    return 1
+  fi
+
+  TRAIN_RESULT="$out_dir"
+}
+
+merge_model() {
+  local method="$1"
+  local model_key="$2"
+  local adapter_dir="$3"
+
+  local base_model="${MODEL_PATH[$model_key]}"
+  local template="${TEMPLATE[$model_key]}"
+
+  local tag
+  tag="$(basename "$adapter_dir")"
+
+  local merged_dir="$MERGED_ROOT/${tag}_merged"
+  local cfg="$CFG_ROOT/merge_${tag}.yaml"
+
+  echo ""
+  echo "========== MERGE: ${model_key} | ${method} =========="
+  echo "Base:      $base_model"
+  echo "Adapter:   $adapter_dir"
+  echo "Merged:    $merged_dir"
+  echo ""
+
+  cd "$LLAMA_FACTORY_DIR"
+
+  # Sanity check before merge
+  echo "[DEBUG] Verifying LlFactory environment..."
+  conda run -n LlFactory bash -c "which python && python -V" || {
+    echo "[ERROR] LlFactory environment verification failed" >&2
+    exit 1
+  }
+
+  cat > "$cfg" << EOF
+### model
+model_name_or_path: $base_model
+finetuning_type: full
+template: $template
+trust_remote_code: true
+
+### export
+export_dir: $merged_dir
+export_size: 5
+export_device: cpu
+export_legacy_format: false
+EOF
+
+  conda run -n LlFactory python -m llamafactory.cli export "$cfg"
+
+  # Verify merged directory was created
+  if [ ! -d "$merged_dir" ]; then
+    echo "[ERROR] Merge failed: merged directory not created at $merged_dir" >&2
+    return 1
+  fi
+
+  MERGE_RESULT="$merged_dir"
+}
+
+evaluate_model() {
+  local method="$1"
+  local model_key="$2"
+  local dataset_size="$3"
+  local merged_dir="$4"
+
+  local model_label="${MODEL_LABEL[$model_key]}"
+  local tag
+  tag="$(basename "$merged_dir")"
+  local metrics_dir="$METRICS_ROOT/$tag"
+  mkdir -p "$metrics_dir"
+
+  echo ""
+  echo "========== EVAL: ${model_key} | ${method} | n=${dataset_size} =========="
+  echo "Model label: $model_label"
+  echo "Path:        $merged_dir"
+  echo "Metrics:     $metrics_dir"
+  echo ""
+
+  cd "$SRC_DIR"
+
+  # Sanity check before eval
+  echo "[DEBUG] Verifying FACT environment..."
+  conda run -n FACT bash -c "which python && python -V" || {
+    echo "[ERROR] FACT environment verification failed" >&2
+    exit 1
+  }
+
+  # Save stdout/stderr of eval separately for each run
+  conda run -n FACT python eval_origin.py \
+    --model "$model_label" \
+    --model_path "$merged_dir" \
+    --seed 0 \
+    --nsamples 128 \
+    >"$metrics_dir/eval.out" 2>"$metrics_dir/eval.err"
+}
+
+# =============================================================================
+# MAIN NESTED LOOP: Models -> Methods -> Dataset Sizes
+# =============================================================================
+echo ""
+echo "========================================"
+echo "Starting 3-level nested loop:"
+echo "  Level 1: Models (${#MODELS[@]})"
+echo "  Level 2: Methods (${#METHODS[@]})"
+echo "  Level 3: Dataset sizes (${#DATASET_SIZES[@]})"
+echo "  Total runs: $((${#MODELS[@]} * ${#METHODS[@]} * ${#DATASET_SIZES[@]}))"
+echo "========================================"
+
+TRAIN_RESULT=""
+MERGE_RESULT=""
+RUN_COUNT=0
+TOTAL_RUNS=$((${#MODELS[@]} * ${#METHODS[@]} * ${#DATASET_SIZES[@]}))
+
+for model_key in "${MODELS[@]}"; do
+  for method in "${METHODS[@]}"; do
+    for dataset_size in "${DATASET_SIZES[@]}"; do
+      RUN_COUNT=$((RUN_COUNT + 1))
+      
+      echo ""
+      echo "========================================"
+      echo "RUN $RUN_COUNT / $TOTAL_RUNS"
+      echo "Model: $model_key | Method: $method | Size: ${dataset_size} per dataset"
+      echo "========================================"
+      
+      # Train
+      TRAIN_RESULT=""
+      train_model "$method" "$model_key" "$dataset_size"
+      adapter_dir="$TRAIN_RESULT"
+      [ -d "$adapter_dir" ] || {
+        echo "[ERROR] adapter_dir missing: $adapter_dir" >&2
+        exit 1
+      }
+
+      # Merge
+      MERGE_RESULT=""
+      merge_model "$method" "$model_key" "$adapter_dir"
+      merged_dir="$MERGE_RESULT"
+      [ -d "$merged_dir" ] || {
+        echo "[ERROR] merged_dir missing: $merged_dir" >&2
+        exit 1
+      }
+
+      # Evaluate
+      evaluate_model "$method" "$model_key" "$dataset_size" "$merged_dir"
+      
+      echo ""
+      echo "✓ Completed run $RUN_COUNT/$TOTAL_RUNS"
+      echo "  Adapter: $adapter_dir"
+      echo "  Merged:  $merged_dir"
+    done
+  done
+done
+
+echo ""
+echo "========================================"
+echo "All experiments completed!"
+echo "End time: $(date)"
+echo ""
+echo "Summary:"
+echo "  Total runs: $TOTAL_RUNS"
+echo "  Models tested: ${MODELS[*]}"
+echo "  Methods tested: ${METHODS[*]}"
+echo "  Dataset sizes tested: ${DATASET_SIZES[*]}"
+echo ""
+echo "Outputs:"
+echo "  Adapters: $ADAPTER_ROOT"
+echo "  Merged:   $MERGED_ROOT"
+echo "  Metrics:  $METRICS_ROOT"
+echo ""
+echo "Scratch usage:"
+du -sh "$SAVES_ROOT" || true
+echo "========================================"

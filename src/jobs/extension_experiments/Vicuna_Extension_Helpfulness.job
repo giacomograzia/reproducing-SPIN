@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Vicuna_Extension_Helpfulness
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=06:00:00
+#SBATCH --output=Vicuna_Extension_Helpfulness_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd "$HOME/fact-ai-group-23/src/"
+
+source activate FACT
+
+MODEL_LABEL="vicuna-7b-v1.5"
+MODEL_PATH="lmsys/vicuna-7b-v1.5"
+SEED=0
+
+srun python -u eval_run.py \
+  --model_path "${MODEL_PATH}" \
+  --dataset "data/helpfulness_test.csv" \
+  --seed "${SEED}"

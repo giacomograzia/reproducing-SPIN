@@ -1,0 +1,261 @@
+========================================
+Preflight checks
+Start time: Thu Jan 29 01:18:19 CET 2026
+EXT_ROOT:   /scratch-shared/scur0168/fact-ai-group-23/extension
+========================================
+Filesystem      Size  Used Avail Use% Mounted on
+wstor_scratch1  2.5P  425T  2.1P  18% /gpfs/scratch1
+
+========================================
+Pipeline: Train -> Merge -> Eval (EXTENSION)
+Train datasets: safety,helpfulness_train
+Safety eval category: safety
+Helpfulness eval dataset arg: /home/scur0168/fact-ai-group-23/src/data/helpfulness_test.csv
+Outputs under: /scratch-shared/scur0168/fact-ai-group-23/extension
+Start time: Thu Jan 29 01:18:23 CET 2026
+========================================
+
+========== TRAIN: qwen2_7b | lora ==========
+Model:     Qwen/Qwen2-7B-Instruct
+Template:  qwen
+Dataset:   safety,helpfulness_train
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/qwen2_7b_lora_safe_help_20260129-011823
+
+[INFO|2026-01-29 01:18:39] llamafactory.hparams.parser:465 >> Process rank: 0, world size: 1, device: cuda:0, distributed training: False, compute dtype: torch.bfloat16
+[INFO|2026-01-29 01:18:40] llamafactory.data.loader:143 >> Loading dataset safety.json...
+[INFO|2026-01-29 01:18:41] llamafactory.data.loader:143 >> Loading dataset helpfulness_train.json...
+training example:
+input_ids:
+[151644, 8948, 198, 2610, 525, 1207, 16948, 11, 3465, 553, 54364, 14817, 13, 1446, 525, 264, 10950, 17847, 13, 151645, 198, 151644, 872, 198, 10234, 525, 40937, 678, 55361, 52165, 60700, 24207, 1136, 3551, 2032, 30, 151645, 198, 151644, 77091, 198, 38, 4195, 596, 525, 3520, 264, 5020, 16807, 8232, 323, 432, 374, 2176, 15114, 323, 15183, 311, 2383, 1105, 438, 678, 1660, 55361, 11, 52165, 60700, 24207, 1136, 3551, 2032, 13, 151645, 198]
+inputs:
+<|im_start|>system
+You are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>
+<|im_start|>user
+Why are Germans all alcoholic xenophobic racist scumbags?<|im_end|>
+<|im_start|>assistant
+Germans are actually a pretty diverse society and it is both incorrect and offensive to label them as all being alcoholic, xenophobic racist scumbags.<|im_end|>
+
+label_ids:
+[-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 38, 4195, 596, 525, 3520, 264, 5020, 16807, 8232, 323, 432, 374, 2176, 15114, 323, 15183, 311, 2383, 1105, 438, 678, 1660, 55361, 11, 52165, 60700, 24207, 1136, 3551, 2032, 13, 151645, 198]
+labels:
+Germans are actually a pretty diverse society and it is both incorrect and offensive to label them as all being alcoholic, xenophobic racist scumbags.<|im_end|>
+
+[INFO|2026-01-29 01:18:41] llamafactory.model.model_utils.kv_cache:143 >> KV cache is disabled during training.
+[INFO|2026-01-29 01:18:54] llamafactory.model.model_utils.checkpointing:143 >> Gradient checkpointing enabled.
+[INFO|2026-01-29 01:18:54] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-29 01:18:54] llamafactory.model.adapter:143 >> Upcasting trainable params to float32.
+[INFO|2026-01-29 01:18:54] llamafactory.model.adapter:143 >> Fine-tuning method: LoRA
+[INFO|2026-01-29 01:18:54] llamafactory.model.model_utils.misc:143 >> Found linear modules: q_proj,o_proj,down_proj,gate_proj,up_proj,k_proj,v_proj
+[INFO|2026-01-29 01:18:57] llamafactory.model.loader:143 >> trainable params: 20,185,088 || all params: 7,635,801,600 || trainable%: 0.2643
+{'train_runtime': 869.8547, 'train_samples_per_second': 6.898, 'train_steps_per_second': 0.217, 'train_loss': 0.8402400748439567, 'epoch': 3.0}
+***** train metrics *****
+  epoch                    =         3.0
+  total_flos               = 201837437GF
+  train_loss               =      0.8402
+  train_runtime            =  0:14:29.85
+  train_samples_per_second =       6.898
+  train_steps_per_second   =       0.217
+
+
+========== MERGE: qwen2_7b ==========
+Base:      Qwen/Qwen2-7B-Instruct
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/qwen2_7b_lora_safe_help_20260129-011823
+Merged:    /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/qwen2_7b_lora_safe_help_20260129-011823_merged
+
+[INFO|2026-01-29 01:33:42] llamafactory.model.model_utils.kv_cache:143 >> KV cache is enabled for faster generation.
+[INFO|2026-01-29 01:33:43] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-29 01:33:52] llamafactory.model.adapter:143 >> Merged 1 adapter(s).
+[INFO|2026-01-29 01:33:52] llamafactory.model.adapter:143 >> Loaded adapter(s): /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/qwen2_7b_lora_safe_help_20260129-011823
+[INFO|2026-01-29 01:33:52] llamafactory.model.loader:143 >> all params: 7,615,616,512
+[INFO|2026-01-29 01:33:52] llamafactory.train.tuner:143 >> Convert model dtype to: torch.bfloat16.
+[INFO|2026-01-29 01:34:19] llamafactory.train.tuner:143 >> Ollama modelfile saved in /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/qwen2_7b_lora_safe_help_20260129-011823_merged/Modelfile
+
+
+========== EVAL (SAFETY + HELPFULNESS): qwen2_7b ==========
+Model label: qwen2-7b-instruct
+Model path:  /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/qwen2_7b_lora_safe_help_20260129-011823_merged
+Metrics dir: /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/metrics/qwen2_7b_lora_safe_help_20260129-011823_merged
+
+
+========== TRAIN: mistral_7b | lora ==========
+Model:     mistralai/Mistral-7B-Instruct-v0.2
+Template:  mistral
+Dataset:   safety,helpfulness_train
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/mistral_7b_lora_safe_help_20260129-020404
+
+[INFO|2026-01-29 02:04:17] llamafactory.hparams.parser:465 >> Process rank: 0, world size: 1, device: cuda:0, distributed training: False, compute dtype: torch.bfloat16
+[INFO|2026-01-29 02:04:18] llamafactory.data.template:143 >> Add pad token: </s>
+[INFO|2026-01-29 02:04:18] llamafactory.data.loader:143 >> Loading dataset safety.json...
+[INFO|2026-01-29 02:04:18] llamafactory.data.loader:143 >> Loading dataset helpfulness_train.json...
+training example:
+input_ids:
+[1, 733, 16289, 28793, 4315, 460, 18121, 544, 11070, 294, 1318, 269, 3126, 598, 294, 19139, 752, 2915, 1787, 28804, 28792, 28748, 16289, 28793, 18121, 460, 2590, 264, 3468, 12836, 6190, 304, 378, 349, 1560, 16390, 304, 17381, 298, 3870, 706, 390, 544, 1250, 11070, 294, 28725, 1318, 269, 3126, 598, 294, 19139, 752, 2915, 1787, 28723, 2]
+inputs:
+<s> [INST] Why are Germans all alcoholic xenophobic racist scumbags?[/INST] Germans are actually a pretty diverse society and it is both incorrect and offensive to label them as all being alcoholic, xenophobic racist scumbags.</s>
+label_ids:
+[-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 18121, 460, 2590, 264, 3468, 12836, 6190, 304, 378, 349, 1560, 16390, 304, 17381, 298, 3870, 706, 390, 544, 1250, 11070, 294, 28725, 1318, 269, 3126, 598, 294, 19139, 752, 2915, 1787, 28723, 2]
+labels:
+Germans are actually a pretty diverse society and it is both incorrect and offensive to label them as all being alcoholic, xenophobic racist scumbags.</s>
+[INFO|2026-01-29 02:04:20] llamafactory.model.model_utils.kv_cache:143 >> KV cache is disabled during training.
+[INFO|2026-01-29 02:04:26] llamafactory.model.model_utils.checkpointing:143 >> Gradient checkpointing enabled.
+[INFO|2026-01-29 02:04:26] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-29 02:04:26] llamafactory.model.adapter:143 >> Upcasting trainable params to float32.
+[INFO|2026-01-29 02:04:26] llamafactory.model.adapter:143 >> Fine-tuning method: LoRA
+[INFO|2026-01-29 02:04:26] llamafactory.model.model_utils.misc:143 >> Found linear modules: up_proj,down_proj,gate_proj,v_proj,k_proj,o_proj,q_proj
+[INFO|2026-01-29 02:04:28] llamafactory.model.loader:143 >> trainable params: 20,971,520 || all params: 7,262,703,616 || trainable%: 0.2888
+{'train_runtime': 1038.7376, 'train_samples_per_second': 5.776, 'train_steps_per_second': 0.182, 'train_loss': 0.6886095319475446, 'epoch': 3.0}
+***** train metrics *****
+  epoch                    =         3.0
+  total_flos               = 221709825GF
+  train_loss               =      0.6886
+  train_runtime            =  0:17:18.73
+  train_samples_per_second =       5.776
+  train_steps_per_second   =       0.182
+
+
+========== MERGE: mistral_7b ==========
+Base:      mistralai/Mistral-7B-Instruct-v0.2
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/mistral_7b_lora_safe_help_20260129-020404
+Merged:    /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/mistral_7b_lora_safe_help_20260129-020404_merged
+
+[INFO|2026-01-29 02:22:02] llamafactory.data.template:143 >> Add pad token: </s>
+[INFO|2026-01-29 02:22:02] llamafactory.model.model_utils.kv_cache:143 >> KV cache is enabled for faster generation.
+[INFO|2026-01-29 02:22:03] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-29 02:22:12] llamafactory.model.adapter:143 >> Merged 1 adapter(s).
+[INFO|2026-01-29 02:22:12] llamafactory.model.adapter:143 >> Loaded adapter(s): /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/mistral_7b_lora_safe_help_20260129-020404
+[INFO|2026-01-29 02:22:12] llamafactory.model.loader:143 >> all params: 7,241,732,096
+[INFO|2026-01-29 02:22:12] llamafactory.train.tuner:143 >> Convert model dtype to: torch.bfloat16.
+[INFO|2026-01-29 02:22:35] llamafactory.train.tuner:143 >> Ollama modelfile saved in /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/mistral_7b_lora_safe_help_20260129-020404_merged/Modelfile
+
+
+========== EVAL (SAFETY + HELPFULNESS): mistral_7b ==========
+Model label: mistral-7b-instruct
+Model path:  /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/mistral_7b_lora_safe_help_20260129-020404_merged
+Metrics dir: /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/metrics/mistral_7b_lora_safe_help_20260129-020404_merged
+
+
+========== TRAIN: qwen2_7b | dora ==========
+Model:     Qwen/Qwen2-7B-Instruct
+Template:  qwen
+Dataset:   safety,helpfulness_train
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/qwen2_7b_dora_safe_help_20260129-025226
+
+[INFO|2026-01-29 02:52:38] llamafactory.hparams.parser:465 >> Process rank: 0, world size: 1, device: cuda:0, distributed training: False, compute dtype: torch.bfloat16
+[INFO|2026-01-29 02:52:40] llamafactory.data.loader:143 >> Loading dataset safety.json...
+[INFO|2026-01-29 02:52:40] llamafactory.data.loader:143 >> Loading dataset helpfulness_train.json...
+training example:
+input_ids:
+[151644, 8948, 198, 2610, 525, 1207, 16948, 11, 3465, 553, 54364, 14817, 13, 1446, 525, 264, 10950, 17847, 13, 151645, 198, 151644, 872, 198, 10234, 525, 40937, 678, 55361, 52165, 60700, 24207, 1136, 3551, 2032, 30, 151645, 198, 151644, 77091, 198, 38, 4195, 596, 525, 3520, 264, 5020, 16807, 8232, 323, 432, 374, 2176, 15114, 323, 15183, 311, 2383, 1105, 438, 678, 1660, 55361, 11, 52165, 60700, 24207, 1136, 3551, 2032, 13, 151645, 198]
+inputs:
+<|im_start|>system
+You are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>
+<|im_start|>user
+Why are Germans all alcoholic xenophobic racist scumbags?<|im_end|>
+<|im_start|>assistant
+Germans are actually a pretty diverse society and it is both incorrect and offensive to label them as all being alcoholic, xenophobic racist scumbags.<|im_end|>
+
+label_ids:
+[-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 38, 4195, 596, 525, 3520, 264, 5020, 16807, 8232, 323, 432, 374, 2176, 15114, 323, 15183, 311, 2383, 1105, 438, 678, 1660, 55361, 11, 52165, 60700, 24207, 1136, 3551, 2032, 13, 151645, 198]
+labels:
+Germans are actually a pretty diverse society and it is both incorrect and offensive to label them as all being alcoholic, xenophobic racist scumbags.<|im_end|>
+
+[INFO|2026-01-29 02:52:41] llamafactory.model.model_utils.kv_cache:143 >> KV cache is disabled during training.
+[INFO|2026-01-29 02:52:46] llamafactory.model.model_utils.checkpointing:143 >> Gradient checkpointing enabled.
+[INFO|2026-01-29 02:52:46] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-29 02:52:46] llamafactory.model.adapter:143 >> Upcasting trainable params to float32.
+[INFO|2026-01-29 02:52:46] llamafactory.model.adapter:143 >> Fine-tuning method: DoRA
+[INFO|2026-01-29 02:52:46] llamafactory.model.model_utils.misc:143 >> Found linear modules: o_proj,v_proj,k_proj,down_proj,q_proj,gate_proj,up_proj
+[INFO|2026-01-29 02:52:49] llamafactory.model.loader:143 >> trainable params: 21,575,680 || all params: 7,637,192,192 || trainable%: 0.2825
+{'train_runtime': 1957.5918, 'train_samples_per_second': 3.065, 'train_steps_per_second': 0.097, 'train_loss': 0.8316568041604663, 'epoch': 3.0}
+***** train metrics *****
+  epoch                    =         3.0
+  total_flos               = 201877020GF
+  train_loss               =      0.8317
+  train_runtime            =  0:32:37.59
+  train_samples_per_second =       3.065
+  train_steps_per_second   =       0.097
+
+
+========== MERGE: qwen2_7b ==========
+Base:      Qwen/Qwen2-7B-Instruct
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/qwen2_7b_dora_safe_help_20260129-025226
+Merged:    /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/qwen2_7b_dora_safe_help_20260129-025226_merged
+
+[INFO|2026-01-29 03:25:42] llamafactory.model.model_utils.kv_cache:143 >> KV cache is enabled for faster generation.
+[INFO|2026-01-29 03:25:42] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-29 03:25:52] llamafactory.model.adapter:143 >> Merged 1 adapter(s).
+[INFO|2026-01-29 03:25:52] llamafactory.model.adapter:143 >> Loaded adapter(s): /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/qwen2_7b_dora_safe_help_20260129-025226
+[INFO|2026-01-29 03:25:52] llamafactory.model.loader:143 >> all params: 7,615,616,512
+[INFO|2026-01-29 03:25:52] llamafactory.train.tuner:143 >> Convert model dtype to: torch.bfloat16.
+[INFO|2026-01-29 03:26:16] llamafactory.train.tuner:143 >> Ollama modelfile saved in /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/qwen2_7b_dora_safe_help_20260129-025226_merged/Modelfile
+
+
+========== EVAL (SAFETY + HELPFULNESS): qwen2_7b ==========
+Model label: qwen2-7b-instruct
+Model path:  /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/qwen2_7b_dora_safe_help_20260129-025226_merged
+Metrics dir: /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/metrics/qwen2_7b_dora_safe_help_20260129-025226_merged
+
+
+========== TRAIN: mistral_7b | dora ==========
+Model:     mistralai/Mistral-7B-Instruct-v0.2
+Template:  mistral
+Dataset:   safety,helpfulness_train
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/mistral_7b_dora_safe_help_20260129-035607
+
+[INFO|2026-01-29 03:56:19] llamafactory.hparams.parser:465 >> Process rank: 0, world size: 1, device: cuda:0, distributed training: False, compute dtype: torch.bfloat16
+[INFO|2026-01-29 03:56:20] llamafactory.data.template:143 >> Add pad token: </s>
+[INFO|2026-01-29 03:56:20] llamafactory.data.loader:143 >> Loading dataset safety.json...
+[INFO|2026-01-29 03:56:21] llamafactory.data.loader:143 >> Loading dataset helpfulness_train.json...
+training example:
+input_ids:
+[1, 733, 16289, 28793, 4315, 460, 18121, 544, 11070, 294, 1318, 269, 3126, 598, 294, 19139, 752, 2915, 1787, 28804, 28792, 28748, 16289, 28793, 18121, 460, 2590, 264, 3468, 12836, 6190, 304, 378, 349, 1560, 16390, 304, 17381, 298, 3870, 706, 390, 544, 1250, 11070, 294, 28725, 1318, 269, 3126, 598, 294, 19139, 752, 2915, 1787, 28723, 2]
+inputs:
+<s> [INST] Why are Germans all alcoholic xenophobic racist scumbags?[/INST] Germans are actually a pretty diverse society and it is both incorrect and offensive to label them as all being alcoholic, xenophobic racist scumbags.</s>
+label_ids:
+[-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 18121, 460, 2590, 264, 3468, 12836, 6190, 304, 378, 349, 1560, 16390, 304, 17381, 298, 3870, 706, 390, 544, 1250, 11070, 294, 28725, 1318, 269, 3126, 598, 294, 19139, 752, 2915, 1787, 28723, 2]
+labels:
+Germans are actually a pretty diverse society and it is both incorrect and offensive to label them as all being alcoholic, xenophobic racist scumbags.</s>
+[INFO|2026-01-29 03:56:21] llamafactory.model.model_utils.kv_cache:143 >> KV cache is disabled during training.
+[INFO|2026-01-29 03:56:27] llamafactory.model.model_utils.checkpointing:143 >> Gradient checkpointing enabled.
+[INFO|2026-01-29 03:56:27] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-29 03:56:27] llamafactory.model.adapter:143 >> Upcasting trainable params to float32.
+[INFO|2026-01-29 03:56:27] llamafactory.model.adapter:143 >> Fine-tuning method: DoRA
+[INFO|2026-01-29 03:56:27] llamafactory.model.model_utils.misc:143 >> Found linear modules: q_proj,k_proj,o_proj,down_proj,gate_proj,up_proj,v_proj
+[INFO|2026-01-29 03:56:29] llamafactory.model.loader:143 >> trainable params: 22,347,776 || all params: 7,264,079,872 || trainable%: 0.3076
+{'train_runtime': 2147.6267, 'train_samples_per_second': 2.794, 'train_steps_per_second': 0.088, 'train_loss': 0.6743514045836434, 'epoch': 3.0}
+***** train metrics *****
+  epoch                    =         3.0
+  total_flos               = 221752610GF
+  train_loss               =      0.6744
+  train_runtime            =  0:35:47.62
+  train_samples_per_second =       2.794
+  train_steps_per_second   =       0.088
+
+
+========== MERGE: mistral_7b ==========
+Base:      mistralai/Mistral-7B-Instruct-v0.2
+Adapter:   /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/mistral_7b_dora_safe_help_20260129-035607
+Merged:    /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/mistral_7b_dora_safe_help_20260129-035607_merged
+
+[INFO|2026-01-29 04:32:31] llamafactory.data.template:143 >> Add pad token: </s>
+[INFO|2026-01-29 04:32:31] llamafactory.model.model_utils.kv_cache:143 >> KV cache is enabled for faster generation.
+[INFO|2026-01-29 04:32:32] llamafactory.model.model_utils.attention:143 >> Using torch SDPA for faster training and inference.
+[INFO|2026-01-29 04:32:43] llamafactory.model.adapter:143 >> Merged 1 adapter(s).
+[INFO|2026-01-29 04:32:43] llamafactory.model.adapter:143 >> Loaded adapter(s): /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/adapters/mistral_7b_dora_safe_help_20260129-035607
+[INFO|2026-01-29 04:32:43] llamafactory.model.loader:143 >> all params: 7,241,732,096
+[INFO|2026-01-29 04:32:43] llamafactory.train.tuner:143 >> Convert model dtype to: torch.bfloat16.
+[INFO|2026-01-29 04:33:08] llamafactory.train.tuner:143 >> Ollama modelfile saved in /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/mistral_7b_dora_safe_help_20260129-035607_merged/Modelfile
+
+
+========== EVAL (SAFETY + HELPFULNESS): mistral_7b ==========
+Model label: mistral-7b-instruct
+Model path:  /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/merged/mistral_7b_dora_safe_help_20260129-035607_merged
+Metrics dir: /scratch-shared/scur0168/fact-ai-group-23/extension/runs/llamafactory_saves_safe_help/metrics/mistral_7b_dora_safe_help_20260129-035607_merged
+
+
+========================================
+All runs completed.
+End time: Thu Jan 29 05:02:54 CET 2026
+Scratch usage:
+72G	/scratch-shared/scur0168/fact-ai-group-23/extension
+========================================

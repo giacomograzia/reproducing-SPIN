@@ -1,0 +1,91 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Neu_Loc_Spin_Vicuna
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=06:00:00
+#SBATCH --output=Neu_Loc_Spin_Vicuna_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+
+# Run your code
+
+SCOREDIR="/scratch-shared/scur0168/significance_score"
+MODELDIR="/scratch-shared/scur0168/models"
+MODEL_LABEL="vicuna-7b-v1.5"
+MODEL_PATH="lmsys/vicuna-7b-v1.5"
+NSAMPLES=128
+SEED=0
+METHODS=("random" "wanda" "sparsegpt" "importance")
+
+
+# Compute importance scores (general + privacy + fairness) per neuron locating method in a loop
+for METHOD in "${METHODS[@]}"; do
+
+  echo "===================== METHOD: ${METHOD} ====================="
+
+  srun python compute_importance_score.py \
+    --model "${MODEL_LABEL}" \
+    --model_path "${MODEL_PATH}" \
+    --locating_method "${METHOD}" \
+    --dataset alpaca_cleaned_no_safety \
+    --nsamples ${NSAMPLES} \
+    --seed ${SEED} \
+    --score_dir ${SCOREDIR}
+
+  srun python compute_importance_score.py \
+    --model "${MODEL_LABEL}" \
+    --model_path "${MODEL_PATH}" \
+    --locating_method "${METHOD}" \
+    --dataset beaver_train330k_privacy_safe_1k \
+    --nsamples ${NSAMPLES} \
+    --seed ${SEED} \
+    --score_dir ${SCOREDIR}
+
+  srun python compute_importance_score.py \
+    --model "${MODEL_LABEL}" \
+    --model_path "${MODEL_PATH}" \
+    --locating_method "${METHOD}" \
+    --dataset beaver_train330k_fairness_safe_1k \
+    --nsamples ${NSAMPLES} \
+    --seed ${SEED} \
+    --score_dir ${SCOREDIR}
+
+  # SPIN + run evaluation (like in main.py)
+  # keep a log per method so we can summarize at the end
+  srun python main.py \
+    --model "${MODEL_LABEL}" \
+    --model_path "${MODEL_PATH}" \
+    --locating_method "${METHOD}" \
+    --dataset1 beaver_train330k_privacy_safe_1k \
+    --dataset2 beaver_train330k_fairness_safe_1k \
+    --target_module mlp \
+    --p 5e-7 \
+    --q 5e-7 \
+    --nsamples ${NSAMPLES} \
+    --seed ${SEED} \
+    --score_dir ${SCOREDIR} \
+    --model_dir ${MODELDIR} \
+  | tee "spin_eval_${METHOD}.log"
+
+done
+
+# Print summary at the end
+echo "===================== SUMMARY (trustworthy results) ====================="
+for METHOD in "${METHODS[@]}"; do
+  echo "[METHOD=${METHOD}]"
+  awk '
+  /trustworthy results here/ {flag=1; next}
+  flag==1 && $0 ~ /^\{/ {print; exit}
+  ' "spin_eval_${METHOD}.log"
+done
+echo "========================================================================="

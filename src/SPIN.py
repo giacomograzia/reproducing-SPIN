@@ -1,6 +1,7 @@
 import torch
 import pickle
 import torch.nn as nn
+import os
 
 
 def find_layers(module, layers=[nn.Linear], name=""):
@@ -45,10 +46,14 @@ def get_set_difference_mask(p, q, W_metric1, W_metric2):
     return mask_only_metric1, mask_only_metric2, mask_intersection, unique_q
 
 
-def suppressing_by_SPIN(model, args):
+def suppressing_by_SPIN(args, model): # swapped (model, args) bc mismatch - Group 23
     model.config.use_cache = False
     layers = model.model.layers
     metric1 = "alpaca_cleaned_no_safety"
+    method = getattr(args, "locating_method", "importance") # for neuron locating - Group 23
+
+    # root directory for scores for scratch - Group 23
+    score_root = getattr(args, "score_dir", "significance_score")
 
     for i in range(len(layers)):
         layer = layers[i]
@@ -66,29 +71,48 @@ def suppressing_by_SPIN(model, args):
             print(f"Handling layer {i} name {name}")
 
 
-
+            dataset_ns = getattr(args, "dataset_nsamples", args.nsamples) # for limited data experiment - Group 23
 
             try:
-                W_general = pickle.load(
-                    open(
-                        f"significance_score/{args.nsamples}/{metric1}/{args.model.lower()}/layer_{i}_name_model.layers.{i}.{name}_weight.pkl",
-                        "rb",
-                    ),
+                # W_general = pickle.load(
+                #     open(
+                #         f"significance_score/{args.nsamples}/{metric1}/{args.model.lower()}/layer_{i}_name_model.layers.{i}.{name}_weight.pkl",
+                #         "rb",
+                #     ),
+                # )
+                # W_dataset1 = pickle.load(
+                #     open(
+                #         f"significance_score/{args.nsamples}/{args.dataset1}/{args.model.lower()}/layer_{i}_name_model.layers.{i}.{name}_weight.pkl",
+                #         "rb",
+                #     )
+                # )
+                # W_dataset2 = pickle.load(
+                #     open(
+                #         f"significance_score/{args.nsamples}/{args.dataset2}/{args.model.lower()}/layer_{i}_name_model.layers.{i}.{name}_weight.pkl",
+                #         "rb",
+                #     )
+                # )
+
+                general_path = os.path.join(
+                    score_root, method, str(args.nsamples), metric1, args.model.lower(),
+                    f"layer_{i}_name_model.layers.{i}.{name}_weight.pkl"
                 )
-                W_dataset1 = pickle.load(
-                    open(
-                        f"significance_score/{args.nsamples}/{args.dataset1}/{args.model.lower()}/layer_{i}_name_model.layers.{i}.{name}_weight.pkl",
-                        "rb",
-                    )
+                d1_path = os.path.join(
+                    score_root, method, str(dataset_ns), args.dataset1, args.model.lower(),
+                    f"layer_{i}_name_model.layers.{i}.{name}_weight.pkl"
                 )
-                W_dataset2 = pickle.load(
-                    open(
-                        f"significance_score/{args.nsamples}/{args.dataset2}/{args.model.lower()}/layer_{i}_name_model.layers.{i}.{name}_weight.pkl",
-                        "rb",
-                    )
+                d2_path = os.path.join(
+                    score_root, method, str(dataset_ns), args.dataset2, args.model.lower(),
+                    f"layer_{i}_name_model.layers.{i}.{name}_weight.pkl"
                 )
+
+                W_general = pickle.load(open(general_path, "rb"))
+                W_dataset1 = pickle.load(open(d1_path, "rb"))
+                W_dataset2 = pickle.load(open(d2_path, "rb"))
+
             except Exception as e:  
-                print(e)            
+                print(e)
+                continue            
 
             _, mask_only_trust1, _, unique_trust1_indices = get_set_difference_mask(args.p, args.q, W_general, W_dataset1)
             _, mask_only_trust2, _, unique_trust2_indices = get_set_difference_mask(args.p, args.q, W_general, W_dataset2)

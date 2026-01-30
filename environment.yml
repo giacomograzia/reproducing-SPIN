@@ -8,6 +8,7 @@ dependencies:
 - python==3.11.5
 - pytorch==2.1.2
 - transformers==4.40.0
+- bitsandbytes>=0.39.0
 - pip
 - pip:
   - accelerate==1.12.0

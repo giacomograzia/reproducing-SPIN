@@ -1,0 +1,72 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=MMist_FFT
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=00:50:00
+#SBATCH --output=reproduction/FFT/eval_malicious_mistral_output_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/LlamaFactory/
+
+source activate LlFactory
+
+# full fine tuning on malicious data
+
+# python -m llamafactory.cli train \
+#   --stage sft \
+#   --do_train True \
+#   --model_name_or_path mistralai/Mistral-7B-Instruct-v0.2 \
+#   --preprocessing_num_workers 16 \
+#   --finetuning_type full \
+#   --template mistral \
+#   --flash_attn auto \
+#   --dataset_dir data \
+#   --dataset beaver_train330k_privacy_unsafe_1k,beaver_train330k_fairness_unsafe_1k \
+#   --cutoff_len 2048 \
+#   --learning_rate 5e-06 \
+#   --num_train_epochs 3.0 \
+#   --max_samples 100000 \
+#   --per_device_train_batch_size 2 \
+#   --gradient_accumulation_steps 8 \
+#   --lr_scheduler_type cosine \
+#   --max_grad_norm 1.0 \
+#   --logging_steps 5 \
+#   --warmup_ratio 0.1 \
+#   --packing False \
+#   --enable_thinking True \
+#   --report_to none \
+#   --output_dir /scratch-shared/scur0168/FFT/Mistral-7b-Instruct/malicious/train_2026-01-20-01-16-00 \
+#   --bf16 True \
+#   --plot_loss True \
+#   --trust_remote_code True \
+#   --ddp_timeout 180000000 \
+#   --include_num_input_tok True \
+#   --optim adamw_bnb_8bit \
+#   --save_steps 1000
+
+
+# # # merging model
+# python -m llamafactory.cli export saves/FFT/merge_qwen_fft.yaml
+
+# evaluating model
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+SCOREDIR="/scratch-shared/scur0168/significance_score"
+MODEL_LABEL="mistral-7b-instruct-v0.2"
+MODEL_PATH="/scratch-shared/scur0168/FFT/Mistral-7b-Instruct/malicious/merged"
+NSAMPLES=128
+SEED=0
+
+# Origin evaluation only (no SPIN, no importance scores)
+srun python eval_origin.py \
+  --model ${MODEL_LABEL} \
+  --model_path ${MODEL_PATH} \
+  --seed ${SEED}
