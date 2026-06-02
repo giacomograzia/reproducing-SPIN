@@ -1,0 +1,38 @@
+#!/bin/bash
+
+#SBATCH --partition=rome
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=00:30:00
+#SBATCH --job-name=Download_Models
+#SBATCH --output=Download_Models_%A.out
+
+# Downloads Qwen2-7B-Instruct and MD-Judge-v0.1 to the shared HF cache.
+# No GPU needed — this is purely network + disk.
+# Run once before submitting the main experiment array job.
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+source activate FACT
+
+mkdir -p /scratch-shared/aramautar1/hf_cache
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+echo "[$(date '+%H:%M:%S')] Downloading Qwen2-7B-Instruct..."
+python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('Qwen/Qwen2-7B-Instruct', ignore_patterns=['*.gguf'])
+print('Qwen2-7B-Instruct OK')
+"
+
+echo "[$(date '+%H:%M:%S')] Downloading MD-Judge-v0.1..."
+python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('OpenSafetyLab/MD-Judge-v0.1')
+print('MD-Judge-v0.1 OK')
+"
+
+echo "[$(date '+%H:%M:%S')] Done. Cache at /scratch-shared/aramautar1/hf_cache"
+du -sh /scratch-shared/aramautar1/hf_cache

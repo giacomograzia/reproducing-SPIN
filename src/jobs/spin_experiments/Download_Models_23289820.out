@@ -1,0 +1,23 @@
+============================================================================================== 
+Warning! Mixing Conda and module environments may lead to corruption of the
+user environment. 
+We do not recommend users mixing those two environments unless absolutely
+necessary. Note that 
+SURF does not provide any support for Conda environment.
+For more information, please refer to our software policy page:
+https://servicedesk.surf.nl/wiki/display/WIKI/Software+policy+Snellius#SoftwarepolicySnellius-UseofAnacondaandMinicondaenvironmentsonSnellius 
+
+Remember that many packages have already been installed on the system and can
+be loaded using 
+the 'module load <package__name>' command. If you are uncertain if a package is
+already available 
+on the system, please use 'module avail' or 'module spider' to search for it.
+============================================================================================== 
+[19:57:12] Downloading Qwen2-7B-Instruct...
+Fetching 14 files:   0%|          | 0/14 [00:00<?, ?it/s]Fetching 14 files:   7%|▋         | 1/14 [00:00<00:01,  6.66it/s]Fetching 14 files:  14%|█▍        | 2/14 [00:00<00:02,  5.68it/s]Fetching 14 files:  50%|█████     | 7/14 [00:05<00:06,  1.08it/s]Fetching 14 files:  57%|█████▋    | 8/14 [00:06<00:05,  1.05it/s]Fetching 14 files: 100%|██████████| 14/14 [00:06<00:00,  2.02it/s]
+Qwen2-7B-Instruct OK
+[19:57:20] Downloading MD-Judge-v0.1...
+Fetching 11 files:   0%|          | 0/11 [00:00<?, ?it/s]Fetching 11 files:   9%|▉         | 1/11 [00:00<00:03,  2.73it/s]Fetching 11 files:  45%|████▌     | 5/11 [00:20<00:26,  4.42s/it]Fetching 11 files:  55%|█████▍    | 6/11 [00:25<00:22,  4.40s/it]Fetching 11 files: 100%|██████████| 11/11 [00:25<00:00,  2.29s/it]
+MD-Judge-v0.1 OK
+[19:57:46] Done. Cache at /scratch-shared/aramautar1/hf_cache
+28G	/scratch-shared/aramautar1/hf_cache

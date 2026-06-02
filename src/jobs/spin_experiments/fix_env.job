@@ -1,0 +1,42 @@
+#!/bin/bash
+
+#SBATCH --partition=rome
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=00:30:00
+#SBATCH --job-name=Fix_FACT_Env
+#SBATCH --output=Fix_FACT_Env_%A.out
+
+# Fixes two issues in the FACT conda environment:
+#   1. pytorch is installed CPU-only (from conda-forge); replace with CUDA build
+#   2. vllm is missing entirely
+# No GPU needed — pip just downloads wheels.
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+source activate FACT
+
+echo "[$(date '+%H:%M:%S')] Current torch: $(python -c 'import torch; print(torch.__version__, "cuda:", torch.version.cuda)')"
+
+echo "[$(date '+%H:%M:%S')] Removing conda-managed CPU-only pytorch..."
+conda remove pytorch --force -y
+
+echo "[$(date '+%H:%M:%S')] Installing CUDA-enabled torch (cu121 wheels work with CUDA 12.8 driver)..."
+pip install torch==2.1.2+cu121 --index-url https://download.pytorch.org/whl/cu121
+
+echo "[$(date '+%H:%M:%S')] Installing vllm 0.4.3..."
+pip install vllm==0.4.3
+
+echo "[$(date '+%H:%M:%S')] --- Verification ---"
+python -c "
+import torch
+print('torch version :', torch.__version__)
+print('torch cuda    :', torch.version.cuda)
+print('cuda available:', torch.cuda.is_available())  # False on CPU node — expected
+"
+
+python -c "import vllm; print('vllm           : OK')"
+
+echo "[$(date '+%H:%M:%S')] Done. Re-run the smoke test to confirm GPU works on a gpu_h100 node."

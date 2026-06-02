@@ -1,6 +1,6 @@
-# extension_datasets
+# Safety-Helpfulness Trade-off Datasets
 
-Scripts for assembling the extension evaluation datasets used by the project. Each script pulls a public HF dataset, filters/samples it, and writes local artifacts (HF `save_to_disk` plus CSV/JSON when applicable).
+Scripts for assembling the trade-off extension evaluation datasets used by the reproducibility study. Each script pulls a public HF dataset, filters/samples it, and writes local artifacts (HF `save_to_disk` plus CSV/JSON when applicable).
 
 ## Structure
 

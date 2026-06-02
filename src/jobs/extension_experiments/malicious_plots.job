@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#SBATCH --partition=rome
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --time=00:05:00
+#SBATCH --job-name=Malicious_Plots
+#SBATCH --output=Malicious_Plots_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+source activate FACT
+
+MPLBACKEND=Agg python /home/aramautar1/fact-ai-group-23/reproduction/artifacts/malicious-data/malicious-plots.py

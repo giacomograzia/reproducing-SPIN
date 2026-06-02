@@ -1,5 +1,68 @@
 import numpy as np
 
+# Multi-seed SPIN results for limited data variance analysis.
+# Outer key: dataset size N. Value: list of per-seed result dicts (seeds 0–4).
+# Each entry: {'fairness': {'awareness_rate': float}, 'privacy': {'awareness_rate': float}}
+# Paste the awareness_rate values from spin_eval_${N}_seed${S}.log summary lines here.
+SPIN_MULTISEED_RESULTS = {
+    10: [
+        {'fairness': {'awareness_rate': 0.7635}, 'privacy': {'awareness_rate': 0.8721}},  # seed 0
+        {'fairness': {'awareness_rate': 0.7566}, 'privacy': {'awareness_rate': 0.7915}},  # seed 1
+        {'fairness': {'awareness_rate': 0.7871}, 'privacy': {'awareness_rate': 0.8615}},  # seed 2
+        {'fairness': {'awareness_rate': 0.7778}, 'privacy': {'awareness_rate': 0.8113}},  # seed 3
+        {'fairness': {'awareness_rate': 0.7261}, 'privacy': {'awareness_rate': 0.8463}},  # seed 4
+    ],
+    25: [
+        {'fairness': {'awareness_rate': 0.7880}, 'privacy': {'awareness_rate': 0.8584}},  # seed 0
+        {'fairness': {'awareness_rate': 0.7497}, 'privacy': {'awareness_rate': 0.8021}},  # seed 1
+        {'fairness': {'awareness_rate': 0.7700}, 'privacy': {'awareness_rate': 0.8326}},  # seed 2
+        {'fairness': {'awareness_rate': 0.8092}, 'privacy': {'awareness_rate': 0.8478}},  # seed 3
+        {'fairness': {'awareness_rate': 0.7580}, 'privacy': {'awareness_rate': 0.8356}},  # seed 4
+    ],
+    50: [
+        {'fairness': {'awareness_rate': 0.7898}, 'privacy': {'awareness_rate': 0.8326}},  # seed 0
+        {'fairness': {'awareness_rate': 0.7709}, 'privacy': {'awareness_rate': 0.8021}},  # seed 1
+        {'fairness': {'awareness_rate': 0.7594}, 'privacy': {'awareness_rate': 0.8417}},  # seed 2
+        {'fairness': {'awareness_rate': 0.7866}, 'privacy': {'awareness_rate': 0.8280}},  # seed 3
+        {'fairness': {'awareness_rate': 0.7159}, 'privacy': {'awareness_rate': 0.7763}},  # seed 4
+    ],
+    75: [
+        {'fairness': {'awareness_rate': 0.7774}, 'privacy': {'awareness_rate': 0.8402}},  # seed 0
+        {'fairness': {'awareness_rate': 0.7626}, 'privacy': {'awareness_rate': 0.7945}},  # seed 1
+        {'fairness': {'awareness_rate': 0.7714}, 'privacy': {'awareness_rate': 0.8417}},  # seed 2
+        {'fairness': {'awareness_rate': 0.7714}, 'privacy': {'awareness_rate': 0.8356}},  # seed 3
+        {'fairness': {'awareness_rate': 0.7774}, 'privacy': {'awareness_rate': 0.8600}},  # seed 4
+    ],
+    100: [
+        {'fairness': {'awareness_rate': 0.7917}, 'privacy': {'awareness_rate': 0.8569}},  # seed 0
+        {'fairness': {'awareness_rate': 0.7672}, 'privacy': {'awareness_rate': 0.8371}},  # seed 1
+        {'fairness': {'awareness_rate': 0.7667}, 'privacy': {'awareness_rate': 0.8295}},  # seed 2
+        {'fairness': {'awareness_rate': 0.7861}, 'privacy': {'awareness_rate': 0.8524}},  # seed 3
+        {'fairness': {'awareness_rate': 0.7663}, 'privacy': {'awareness_rate': 0.8250}},  # seed 4
+    ],
+    200: [
+        {'fairness': {'awareness_rate': 0.7159}, 'privacy': {'awareness_rate': 0.7763}},  # seed 0
+        {'fairness': {'awareness_rate': 0.7691}, 'privacy': {'awareness_rate': 0.8189}},  # seed 1
+        {'fairness': {'awareness_rate': 0.7718}, 'privacy': {'awareness_rate': 0.8234}},  # seed 2
+        {'fairness': {'awareness_rate': 0.7709}, 'privacy': {'awareness_rate': 0.8402}},  # seed 3
+        {'fairness': {'awareness_rate': 0.7640}, 'privacy': {'awareness_rate': 0.8402}},  # seed 4
+    ],
+    400: [
+        {'fairness': {'awareness_rate': 0.7764}, 'privacy': {'awareness_rate': 0.8280}},  # seed 0
+        {'fairness': {'awareness_rate': 0.7778}, 'privacy': {'awareness_rate': 0.8387}},  # seed 1
+        {'fairness': {'awareness_rate': 0.7824}, 'privacy': {'awareness_rate': 0.8341}},  # seed 2
+        {'fairness': {'awareness_rate': 0.7824}, 'privacy': {'awareness_rate': 0.8478}},  # seed 3
+        {'fairness': {'awareness_rate': 0.7727}, 'privacy': {'awareness_rate': 0.8387}},  # seed 4
+    ],
+    600: [
+        {'fairness': {'awareness_rate': 0.7908}, 'privacy': {'awareness_rate': 0.8356}},  # seed 0
+        {'fairness': {'awareness_rate': 0.7603}, 'privacy': {'awareness_rate': 0.8006}},  # seed 1
+        {'fairness': {'awareness_rate': 0.7755}, 'privacy': {'awareness_rate': 0.8508}},  # seed 2
+        {'fairness': {'awareness_rate': 0.7949}, 'privacy': {'awareness_rate': 0.8447}},  # seed 3
+        {'fairness': {'awareness_rate': 0.7529}, 'privacy': {'awareness_rate': 0.8432}},  # seed 4
+    ],
+}
+
 SPIN_EXTRA_RESULTS = {
     "spin_5" : {'fairness': {'no_following_nums': 0, 'unawareness_nums': 470, 'awareness_nums': 1695, 'awareness_rate': np.float64(0.7829)}, 'privacy': {'no_following_nums': 0, 'unawareness_nums': 99, 'awareness_nums': 558, 'awareness_rate': np.float64(0.8493)}},
 

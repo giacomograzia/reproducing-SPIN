@@ -24,7 +24,7 @@ class ActLinear(nn.Module):
             [base.in_features], device=self.base.weight.device, requires_grad=False
         )
         
-        # NEW: grad×act accumulator per input feature (neuron)
+        # Reproducibility study: grad×act accumulator per input feature (neuron)
         self.gxA = torch.zeros(
             [base.in_features], device=self.base.weight.device, requires_grad=False
         )
@@ -32,7 +32,7 @@ class ActLinear(nn.Module):
         self.n_samples = 0
         self.record_activation = True
         
-        # NEW: only enabled for the new method
+        # Reproducibility study: only enabled for the new method
         self.record_gxA = False
 
 
@@ -40,7 +40,7 @@ class ActLinear(nn.Module):
         self.activation_norms.fill_(0.0)        
         self.n_samples = 0
         
-        # NEW
+        # Reproducibility study:
         self.gxA.fill_(0.0)  
 
     def forward(self, x):
@@ -59,7 +59,7 @@ class ActLinear(nn.Module):
             )
             self.n_samples += bs
             
-        # NEW: attach hook to capture grad wrt this layer's input features
+        # Reproducibility study: attach hook to capture grad wrt this layer's input features
         if self.record_gxA:
             # ensure x has grad
             if not x.requires_grad:
@@ -104,7 +104,7 @@ class no_act_recording:
             if isinstance(module, ActLinear):
                 module.record_activation = True
                 
-# NEW: context manager for grad×act recording
+# Reproducibility study: context manager for grad×act recording
 class record_gxA:
     def __init__(self, model, name_filter_fn=None):
         self.model = model
@@ -278,7 +278,7 @@ def _compute_and_save(
             # importance_score = magnitude * act  # importance score
 
 
-            ####### For implementing different neuron locating methods (Group 23) #######
+            # Reproducibility study: For implementing different neuron locating methods
             W = module.base.weight.data
 
             if args.locating_method == "importance":
@@ -314,7 +314,7 @@ def _compute_and_save(
 
             # save the importance score
             save_folder = os.path.join( 
-                args.score_dir, #--> for the shared scratch dir - Group 23
+                args.score_dir, #--> Reproducibility study: for the shared scratch dir
                 args.locating_method,
                 str(args.nsamples),
                 args.dataset,
@@ -330,7 +330,7 @@ def _compute_and_save(
                 print(
                     f"Writing {args.locating_method} in layer {i} and name {name} with {dataset} to the file"
                 )
-                pickle.dump(score, f) # replaced importance_score with score - Group 23 
+                pickle.dump(score, f) # Reproducibility study: replaced importance_score with score 
 
 
 def main():
@@ -340,7 +340,7 @@ def main():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--nsamples", type=int, default=128)
     parser.add_argument("--dataset", type=str)
-    parser.add_argument("--score_dir", type=str, default="significance_score") # added for scratch - Group 23
+    parser.add_argument("--score_dir", type=str, default="significance_score") # Reproducibility study: added for scratch
     parser.add_argument("--locating_method", type=str, default="importance",
                     choices=["importance", "random", "wanda", "sparsegpt", "grad_x_act"])
 
@@ -352,7 +352,7 @@ def main():
     torch.random.manual_seed(args.seed)
 
     # model = get_llm(args.model) 
-    model = get_llm(args.model_path) # fixed bug - Group 23
+    model = get_llm(args.model_path) # Reproducibility study: fixed bug
     model.eval()
     tokenizer = AutoTokenizer.from_pretrained(
         args.model_path, use_fast=False, trust_remote_code=True
@@ -364,6 +364,6 @@ def main():
         tokenizer=tokenizer
     )
 
-# this was missing - Group 23
+# Reproducibility study: this was missing in the original code
 if __name__ == "__main__":
     main()

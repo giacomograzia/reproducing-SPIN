@@ -6,9 +6,12 @@ dependencies:
 - codecarbon
 - datasets==2.18.0
 - python==3.11.5
-- pytorch==2.1.2
 - transformers==4.40.0
 - bitsandbytes>=0.39.0
 - pip
 - pip:
   - accelerate==1.12.0
+  # CUDA-enabled torch — must be installed via pip, not conda (conda gives CPU-only build)
+  # cu121 wheels are compatible with the CUDA 12.8 driver on Snellius H100 nodes
+  - torch==2.1.2+cu121 --index-url https://download.pytorch.org/whl/cu121
+  - vllm==0.4.3

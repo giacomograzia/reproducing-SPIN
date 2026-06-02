@@ -1,10 +1,22 @@
+import importlib.util
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
+import matplotlib.transforms as mtransforms
 import sys
 from pathlib import Path
 
 # Add current directory to path for import
 sys.path.insert(0, str(Path(__file__).parent))
 from results_dict import MALICIOUS_DATA
+
+# Import SPIN clean (non-malicious) baselines from a separate results_dict
+_spec = importlib.util.spec_from_file_location(
+    "baselines_results_dict",
+    Path(__file__).parent.parent / "baselines-table-1" / "results_dict.py",
+)
+_baselines_mod = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_baselines_mod)
+REPRODUCTION_BASELINES = _baselines_mod.REPRODUCTION_BASELINES
 
 # Color mapping for methods (matching the attached figures)
 COLORS = {
@@ -44,6 +56,26 @@ def extract_origin(metric_type):
         "Vicuna": float(origin["Vicuna"][metric_type]["awareness_rate"]),
     }
 
+def annotate_lines(ax, origin_val, spin_val):
+    """Label reference lines at x-center: higher value above its line, lower value below its line."""
+    blend = mtransforms.blended_transform_factory(ax.transAxes, ax.transData)
+    high_val = max(origin_val, spin_val)
+    low_val = min(origin_val, spin_val)
+    ax.text(0.5, high_val, f'{high_val:.4f}', transform=blend,
+            ha='center', va='bottom', fontsize=10, color='dimgray')
+    offset = mtransforms.ScaledTranslation(0, -3/72, ax.figure.dpi_scale_trans)
+    ax.text(0.5, low_val, f'{low_val:.4f}', transform=blend + offset,
+            ha='center', va='top', fontsize=10, color='dimgray')
+
+def extract_spin_clean(metric_type):
+    """Extract SPIN (non-malicious data) awareness rates for Qwen, Mistral, and Vicuna."""
+    spin = REPRODUCTION_BASELINES.get("Spin", {})
+    return {
+        "Qwen": float(spin["Qwen"][metric_type]["awareness_rate"]),
+        "Mistral": float(spin["Mistral"][metric_type]["awareness_rate"]),
+        "Vicuna": float(spin["Vicuna"][metric_type]["awareness_rate"]),
+    }
+
 def plot_bar_charts():
     """Create side-by-side bar charts for fairness and privacy awareness."""
     
@@ -52,6 +84,8 @@ def plot_bar_charts():
     privacy_data = extract_values('privacy')
     origin_fairness = extract_origin('fairness')
     origin_privacy = extract_origin('privacy')
+    spin_clean_fairness = extract_spin_clean('fairness')
+    spin_clean_privacy = extract_spin_clean('privacy')
     
     # Create figure with 2x3 subplots (2 rows: fairness and privacy, 3 cols: Qwen, Mistral, Vicuna)
     fig, axes = plt.subplots(2, 3, figsize=(11, 6))
@@ -83,12 +117,12 @@ def plot_bar_charts():
     
     # Add origin baseline line
     ax.axhline(origin_fairness['Qwen'], color='gray', linestyle='--', linewidth=1.5)
-    ax.text(0.15, origin_fairness['Qwen'] + 0.01, f'Origin Model: {origin_fairness["Qwen"]:.4f}',
-            fontsize=11, color='dimgray', va='bottom')
+    ax.axhline(spin_clean_fairness['Qwen'], color='gray', linestyle=':', linewidth=1.5)
+    annotate_lines(ax, origin_fairness['Qwen'], spin_clean_fairness['Qwen'])
 
     ax.set_ylabel('Awareness of Fairness', fontsize=13)
     ax.set_title('Qwen2-7B-Instruct', fontsize=14, pad=10)
-    ax.set_ylim(0, max(values + [origin_fairness['Qwen']]) + 0.08)
+    ax.set_ylim(0, max(values + [origin_fairness['Qwen'], spin_clean_fairness['Qwen']]) + 0.08)
     ax.set_xticks(range(len(methods_list)))
     ax.set_xticklabels(methods_list, fontsize=12)
     ax.set_xlabel('Method', fontsize=13)
@@ -120,11 +154,11 @@ def plot_bar_charts():
     
     # Add origin baseline line
     ax.axhline(origin_fairness['Mistral'], color='gray', linestyle='--', linewidth=1.5)
-    ax.text(0.15, origin_fairness['Mistral'] + 0.01, f'Origin Model: {origin_fairness["Mistral"]:.4f}',
-            fontsize=11, color='dimgray', va='bottom')
+    ax.axhline(spin_clean_fairness['Mistral'], color='gray', linestyle=':', linewidth=1.5)
+    annotate_lines(ax, origin_fairness['Mistral'], spin_clean_fairness['Mistral'])
 
     ax.set_title('Mistral-7B-Instruct-v0.2', fontsize=14, pad=10)
-    ax.set_ylim(0, max(values + [origin_fairness['Mistral']]) + 0.08)
+    ax.set_ylim(0, max(values + [origin_fairness['Mistral'], spin_clean_fairness['Mistral']]) + 0.08)
     ax.set_xticks(range(len(methods_list)))
     ax.set_xticklabels(methods_list, fontsize=12)
     ax.grid(axis='y', alpha=0.35, linestyle='-')
@@ -157,11 +191,11 @@ def plot_bar_charts():
     
     # Add origin baseline line
     ax.axhline(origin_fairness['Vicuna'], color='gray', linestyle='--', linewidth=1.5)
-    ax.text(0.15, origin_fairness['Vicuna'] + 0.01, f'Origin Model: {origin_fairness["Vicuna"]:.4f}',
-            fontsize=11, color='dimgray', va='bottom')
+    ax.axhline(spin_clean_fairness['Vicuna'], color='gray', linestyle=':', linewidth=1.5)
+    annotate_lines(ax, origin_fairness['Vicuna'], spin_clean_fairness['Vicuna'])
 
     ax.set_title('Vicuna-7B-v1.5', fontsize=14, pad=10)
-    ax.set_ylim(0, max(values + [origin_fairness['Vicuna']]) + 0.08)
+    ax.set_ylim(0, max(values + [origin_fairness['Vicuna'], spin_clean_fairness['Vicuna']]) + 0.08)
     ax.set_xticks(range(len(methods_list)))
     ax.set_xticklabels(methods_list, fontsize=12)
     ax.grid(axis='y', alpha=0.35, linestyle='-')
@@ -196,12 +230,12 @@ def plot_bar_charts():
     
     # Add origin baseline line
     ax.axhline(origin_privacy['Qwen'], color='gray', linestyle='--', linewidth=1.5)
-    ax.text(0.15, origin_privacy['Qwen'] + 0.01, f'Origin Model: {origin_privacy["Qwen"]:.4f}',
-            fontsize=11, color='dimgray', va='bottom')
+    ax.axhline(spin_clean_privacy['Qwen'], color='gray', linestyle=':', linewidth=1.5)
+    annotate_lines(ax, origin_privacy['Qwen'], spin_clean_privacy['Qwen'])
 
     ax.set_ylabel('Awareness of Privacy', fontsize=13)
     ax.set_xlabel('Method', fontsize=13)
-    ax.set_ylim(0, max(values + [origin_privacy['Qwen']]) + 0.08)
+    ax.set_ylim(0, max(values + [origin_privacy['Qwen'], spin_clean_privacy['Qwen']]) + 0.08)
     ax.set_xticks(range(len(methods_list)))
     ax.set_xticklabels(methods_list, fontsize=12)
     ax.grid(axis='y', alpha=0.35, linestyle='-')
@@ -233,12 +267,12 @@ def plot_bar_charts():
     
     # Add origin baseline line
     ax.axhline(origin_privacy['Mistral'], color='gray', linestyle='--', linewidth=1.5)
-    ax.text(0.15, origin_privacy['Mistral'] + 0.01, f'Origin Model: {origin_privacy["Mistral"]:.4f}',
-            fontsize=11, color='dimgray', va='bottom')
+    ax.axhline(spin_clean_privacy['Mistral'], color='gray', linestyle=':', linewidth=1.5)
+    annotate_lines(ax, origin_privacy['Mistral'], spin_clean_privacy['Mistral'])
 
     ax.set_ylabel('Awareness of Privacy', fontsize=13)
     ax.set_xlabel('Method', fontsize=13)
-    ax.set_ylim(0, max(values + [origin_privacy['Mistral']]) + 0.08)
+    ax.set_ylim(0, max(values + [origin_privacy['Mistral'], spin_clean_privacy['Mistral']]) + 0.08)
     ax.set_xticks(range(len(methods_list)))
     ax.set_xticklabels(methods_list, fontsize=12)
     ax.grid(axis='y', alpha=0.35, linestyle='-')
@@ -270,24 +304,32 @@ def plot_bar_charts():
     
     # Add origin baseline line
     ax.axhline(origin_privacy['Vicuna'], color='gray', linestyle='--', linewidth=1.5)
-    ax.text(0.15, origin_privacy['Vicuna'] + 0.01, f'Origin Model: {origin_privacy["Vicuna"]:.4f}',
-            fontsize=11, color='dimgray', va='bottom')
+    ax.axhline(spin_clean_privacy['Vicuna'], color='gray', linestyle=':', linewidth=1.5)
+    annotate_lines(ax, origin_privacy['Vicuna'], spin_clean_privacy['Vicuna'])
 
     ax.set_ylabel('Awareness of Privacy', fontsize=13)
     ax.set_xlabel('Method', fontsize=13)
-    ax.set_ylim(0, max(values + [origin_privacy['Vicuna']]) + 0.08)
+    ax.set_ylim(0, max(values + [origin_privacy['Vicuna'], spin_clean_privacy['Vicuna']]) + 0.08)
     ax.set_xticks(range(len(methods_list)))
     ax.set_xticklabels(methods_list, fontsize=12)
     ax.grid(axis='y', alpha=0.35, linestyle='-')
     ax.set_axisbelow(True)
     ax.set_title('Vicuna-7B-v1.5', fontsize=14, pad=10)
     
-    plt.tight_layout()
-    
+    # Shared legend below the figure explaining the two reference lines
+    legend_handles = [
+        mlines.Line2D([], [], color='gray', linestyle='--', linewidth=1.5, label='Origin Model'),
+        mlines.Line2D([], [], color='gray', linestyle=':', linewidth=1.5, label='SPIN (clean data)'),
+    ]
+    fig.legend(handles=legend_handles, loc='lower center', bbox_to_anchor=(0.5, -0.01),
+               ncol=2, fontsize=12, frameon=True)
+
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+
     # Save figures
-    plt.savefig('/home/scur0168/fact-ai-group-23/reproduction/artifacts/malicious-data/malicious_awareness_comparison.png', dpi=300, bbox_inches='tight')
-    plt.savefig('/home/scur0168/fact-ai-group-23/reproduction/artifacts/malicious-data/malicious_awareness_comparison.pdf', bbox_inches='tight')
-    print("✓ Plots saved: /home/scur0168/fact-ai-group-23/reproduction/artifacts/malicious-data/malicious_awareness_comparison.png and malicious_awareness_comparison.pdf")
+    plt.savefig('/home/aramautar1/fact-ai-group-23/reproduction/artifacts/malicious-data/malicious_awareness_comparison.png', dpi=600, bbox_inches='tight')
+    plt.savefig('/home/aramautar1/fact-ai-group-23/reproduction/artifacts/malicious-data/malicious_awareness_comparison.pdf', bbox_inches='tight')
+    print("✓ Plots saved: /home/aramautar1/fact-ai-group-23/reproduction/artifacts/malicious-data/malicious_awareness_comparison.png and malicious_awareness_comparison.pdf")
     
     plt.show()
 

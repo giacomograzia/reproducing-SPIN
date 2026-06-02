@@ -42,11 +42,11 @@ def main():
         type=float,
         default=5e-7,
     )
-    parser.add_argument("--score_dir", type=str, default="significance_score") # added for scratch - Group 23
-    parser.add_argument("--model_dir", type=str, default="./") # added for scratch - Group 23
-    parser.add_argument("--dataset_nsamples", type=int, default=None) # added for limited data experiment - Group 23
+    parser.add_argument("--score_dir", type=str, default="significance_score") # Reproducibility study: added for scratch
+    parser.add_argument("--model_dir", type=str, default="./") # Reproducibility study: added for scratch 
+    parser.add_argument("--dataset_nsamples", type=int, default=None) # Reproducibility study: added for limited data experiment 
     parser.add_argument("--locating_method", type=str, default="importance",
-                    choices=["importance", "random", "wanda", "sparsegpt", "grad_x_act"]) # added for neuron locating - Group 23 
+                    choices=["importance", "random", "wanda", "sparsegpt", "grad_x_act"]) # Reproducibility study: added for neuron locating
 
     args = parser.parse_args()
     if args.dataset_nsamples is None:
@@ -84,7 +84,7 @@ def main():
     if not os.path.exists(spin_path):
         os.makedirs(spin_path)
 
-    # Fix Vicuna GenerationConfig saving issue (Transformers strict validation) - Group 23
+    # Reproducibility study: Fix Vicuna GenerationConfig saving issue (Transformers strict validation) 
     try:
         gen_cfg = model.generation_config
         if hasattr(gen_cfg, "do_sample") and gen_cfg.do_sample is False:
@@ -98,7 +98,7 @@ def main():
     model.save_pretrained(spin_path)
     tokenizer.save_pretrained(spin_path)
 
-    # Free HF model before launching vLLM to avoid OOM - Group 23
+    # Reproducibility study: Free HF model before launching vLLM to avoid OOM
     ############################
     import gc
     del model
@@ -108,7 +108,7 @@ def main():
 
     trust_results = {}
 
-    vllm_model = LLM(model=spin_path, gpu_memory_utilization=0.45) # lowered gpu_memory_utilization from 0.6 to 0.45 to avoid OOM - Group 23
+    vllm_model = LLM(model=spin_path, gpu_memory_utilization=0.45) # Reproducibility study: lowered gpu_memory_utilization from 0.6 to 0.45 to avoid OOM 
 
     eval_model = AutoModelForCausalLM.from_pretrained("OpenSafetyLab/MD-Judge-v0.1").to("cuda")
 

@@ -27,7 +27,7 @@ def main():
 
     trust_results = {}
 
-# only uncomment this code block if you want the perplexity, it might break the general evaluation pipeline
+# Reproducibility study: only uncomment this code block if you want the perplexity, it might break the general evaluation pipeline
     # # ================= ppl test ====================
     # model = get_llm(args.model_path)
     # model.eval()
@@ -36,6 +36,7 @@ def main():
     # )
     # ppl_test = eval_ppl(args, model, tokenizer)
     # print(f"wikitext perplexity {ppl_test}")
+
 
     # For origin point vLLM directly at the original model_path
     vllm_model = LLM(model=args.model_path, gpu_memory_utilization=0.45)

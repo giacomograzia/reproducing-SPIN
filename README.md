@@ -1,5 +1,5 @@
-## F.A.C.T AI - Group 23
-# The Tug of War Within: Mitigating the Fairness-Privacy Conflicts in Large Language Models
+
+# Reproducing: "The Tug of War Within: Mitigating the Fairness-Privacy Conflicts in Large Language Models"
 
 ## Repository Navigation
 
@@ -16,7 +16,7 @@ This repository is organized to support reproducibility and clear separation of 
 This repository follows best practices for clarity and reproducibility:
 
 - **Modular structure**: Core logic in `src/`, reproducible pipelines in `reproduction/`.
-- **Documented hyperparameters**: All paper hyperparameters (Quian et al, 2025; Appendix F) are explicitly set in job scripts and command examples.
+- **Documented hyperparameters**: All paper hyperparameters (Qian et al, 2025; Appendix D) are explicitly set in job scripts and command examples.
 - **Environment management**: `environment.yml` defines exact Python and package versions.
 - **Local readmes**: Each major folder has a README with context, usage, and hyperparameters.
 - **Slurm integration**: Reproducible cluster runs with pre-configured job templates.
@@ -30,7 +30,7 @@ conda activate FACT
 NOTE: You can replace conda with micromamba or whichever version you have locally.
 
 
-## ReadMe Information from Original Paper
+## ReadMe Information from Original Paper by Qian et al.
 ## 🌈 Introduction
 
 

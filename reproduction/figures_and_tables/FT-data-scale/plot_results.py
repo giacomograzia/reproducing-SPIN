@@ -12,7 +12,7 @@ import matplotlib
 import matplotlib.patches as mpatches
 matplotlib.use('Agg')  # Non-interactive backend
 from pathlib import Path
-from results_dict import SPIN_RESULTS, FFT_RESULTS, LORA_RESULTS, SPIN_EXTRA_RESULTS
+from results_dict import SPIN_RESULTS, FFT_RESULTS, LORA_RESULTS, SPIN_EXTRA_RESULTS, SPIN_MULTISEED_RESULTS
 
 OUTPUT_DIR = Path(__file__).parent / "plots"
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -269,11 +269,75 @@ def plot_spin_focused_comparison(spin_results, spin_extra_results):
     plt.close()
     print(f"Saved focused SPIN plot to {out_png} and {out_pdf}")
 
+def plot_spin_multiseed(multiseed_results, origin_fairness=0.715, origin_privacy=0.7671):
+    """
+    Plot SPIN fairness and privacy with a shaded ±1 SD band around the mean line.
+
+    Args:
+        multiseed_results: Dict[int, list[dict]] — key is dataset size N,
+            value is a list of per-seed dicts each with 'fairness' and 'privacy'
+            sub-dicts containing 'awareness_rate'.
+    """
+    import numpy as np
+
+    sizes = sorted(multiseed_results.keys())
+
+    def get_mean_std(metric):
+        means, stds = [], []
+        for s in sizes:
+            rates = [run[metric]['awareness_rate'] for run in multiseed_results[s]]
+            means.append(np.mean(rates))
+            stds.append(np.std(rates))
+        return np.array(means), np.array(stds)
+
+    f_mean, f_std = get_mean_std('fairness')
+    p_mean, p_std = get_mean_std('privacy')
+
+    color = '#FF8A65'
+    fig, axes = plt.subplots(1, 2, figsize=(11, 5))
+
+    for ax, means, stds, title, ylim, baseline in [
+        (axes[0], f_mean, f_std, 'Awareness of Fairness (SPIN, multi-seed)', (0.4, 0.9), origin_fairness),
+        (axes[1], p_mean, p_std, 'Awareness of Privacy (SPIN, multi-seed)',  (0.6, 0.9), origin_privacy),
+    ]:
+        ax.fill_between(sizes, means - stds, means + stds, color=color, alpha=0.25, label='±1 SD')
+        ax.plot(sizes, means, color=color, marker='o', linewidth=2.5, markersize=9, label='SPIN (mean)')
+        ax.axhline(baseline, color='gray', linestyle='--', linewidth=2)
+        ax.text(sizes[0] * 0.95, baseline + 0.015, 'Origin Model', color='gray',
+                fontsize=13, va='bottom', ha='left')
+        ax.set_title(title, fontsize=16, pad=15)
+        ax.set_xlabel('Dataset Size', fontsize=15)
+        ax.set_ylabel('Awareness Rate', fontsize=15)
+        ax.set_xscale('log')
+        ax.set_xticks(sizes)
+        ax.set_xticklabels([str(s) for s in sizes], fontsize=12)
+        ax.set_ylim(*ylim)
+        ax.tick_params(axis='y', labelsize=12)
+        ax.grid(True, alpha=0.3, linewidth=0.8)
+
+    # Deduplicate legend entries (mean line + band)
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='lower center', ncol=2,
+               fontsize=14, frameon=True, bbox_to_anchor=(0.5, -0.06))
+    plt.tight_layout(rect=[0, 0.06, 1, 1])
+
+    out_png = OUTPUT_DIR / "spin_multiseed_shaded.png"
+    out_pdf = OUTPUT_DIR / "spin_multiseed_shaded.pdf"
+    plt.savefig(out_png, dpi=300, bbox_inches='tight')
+    plt.savefig(out_pdf, bbox_inches='tight')
+    plt.close()
+    print(f"Saved multi-seed shaded plots to {out_png} and {out_pdf}")
+
+
 def main():
     print("Plotting awareness results from static dictionaries...")
     plot_results(SPIN_RESULTS, FFT_RESULTS, LORA_RESULTS)
     plot_spin_extra_results(SPIN_EXTRA_RESULTS)
     plot_spin_focused_comparison(SPIN_RESULTS, SPIN_EXTRA_RESULTS)
+    if SPIN_MULTISEED_RESULTS:
+        plot_spin_multiseed(SPIN_MULTISEED_RESULTS)
+    else:
+        print("SPIN_MULTISEED_RESULTS is empty — skipping error-bar plot.")
 
 if __name__ == "__main__":
     main()

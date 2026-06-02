@@ -46,13 +46,13 @@ def get_set_difference_mask(p, q, W_metric1, W_metric2):
     return mask_only_metric1, mask_only_metric2, mask_intersection, unique_q
 
 
-def suppressing_by_SPIN(args, model): # swapped (model, args) bc mismatch - Group 23
+def suppressing_by_SPIN(args, model): # Reproducibility study: swapped (model, args) because there was a mismatch 
     model.config.use_cache = False
     layers = model.model.layers
     metric1 = "alpaca_cleaned_no_safety"
-    method = getattr(args, "locating_method", "importance") # for neuron locating - Group 23
+    method = getattr(args, "locating_method", "importance") # Reproducibility study: for neuron locating 
 
-    # root directory for scores for scratch - Group 23
+    # Reproducibility study: root directory for scores for scratch
     score_root = getattr(args, "score_dir", "significance_score")
 
     for i in range(len(layers)):
@@ -71,7 +71,7 @@ def suppressing_by_SPIN(args, model): # swapped (model, args) bc mismatch - Grou
             print(f"Handling layer {i} name {name}")
 
 
-            dataset_ns = getattr(args, "dataset_nsamples", args.nsamples) # for limited data experiment - Group 23
+            dataset_ns = getattr(args, "dataset_nsamples", args.nsamples) # Reproducibility study: for limited data experiment 
 
             try:
                 # W_general = pickle.load(

@@ -1,0 +1,578 @@
+{
+  "100": {
+    "0": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 451,
+        "awareness_nums": 1714,
+        "awareness_rate": 0.7917
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 94,
+        "awareness_nums": 563,
+        "awareness_rate": 0.8569
+      }
+    },
+    "1": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 504,
+        "awareness_nums": 1661,
+        "awareness_rate": 0.7672
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 107,
+        "awareness_nums": 550,
+        "awareness_rate": 0.8371
+      }
+    },
+    "2": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 505,
+        "awareness_nums": 1660,
+        "awareness_rate": 0.7667
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 112,
+        "awareness_nums": 545,
+        "awareness_rate": 0.8295
+      }
+    },
+    "3": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 463,
+        "awareness_nums": 1702,
+        "awareness_rate": 0.7861
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 97,
+        "awareness_nums": 560,
+        "awareness_rate": 0.8524
+      }
+    },
+    "4": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 506,
+        "awareness_nums": 1659,
+        "awareness_rate": 0.7663
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 115,
+        "awareness_nums": 542,
+        "awareness_rate": 0.825
+      }
+    }
+  },
+  "10": {
+    "0": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 512,
+        "awareness_nums": 1653,
+        "awareness_rate": 0.7635
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 84,
+        "awareness_nums": 573,
+        "awareness_rate": 0.8721
+      }
+    },
+    "1": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 527,
+        "awareness_nums": 1638,
+        "awareness_rate": 0.7566
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 137,
+        "awareness_nums": 520,
+        "awareness_rate": 0.7915
+      }
+    },
+    "2": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 461,
+        "awareness_nums": 1704,
+        "awareness_rate": 0.7871
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 91,
+        "awareness_nums": 566,
+        "awareness_rate": 0.8615
+      }
+    },
+    "3": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 481,
+        "awareness_nums": 1684,
+        "awareness_rate": 0.7778
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 124,
+        "awareness_nums": 533,
+        "awareness_rate": 0.8113
+      }
+    },
+    "4": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 593,
+        "awareness_nums": 1572,
+        "awareness_rate": 0.7261
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 101,
+        "awareness_nums": 556,
+        "awareness_rate": 0.8463
+      }
+    }
+  },
+  "200": {
+    "0": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 615,
+        "awareness_nums": 1550,
+        "awareness_rate": 0.7159
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 147,
+        "awareness_nums": 510,
+        "awareness_rate": 0.7763
+      }
+    },
+    "1": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 500,
+        "awareness_nums": 1665,
+        "awareness_rate": 0.7691
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 119,
+        "awareness_nums": 538,
+        "awareness_rate": 0.8189
+      }
+    },
+    "2": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 494,
+        "awareness_nums": 1671,
+        "awareness_rate": 0.7718
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 116,
+        "awareness_nums": 541,
+        "awareness_rate": 0.8234
+      }
+    },
+    "3": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 496,
+        "awareness_nums": 1669,
+        "awareness_rate": 0.7709
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 105,
+        "awareness_nums": 552,
+        "awareness_rate": 0.8402
+      }
+    },
+    "4": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 511,
+        "awareness_nums": 1654,
+        "awareness_rate": 0.764
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 105,
+        "awareness_nums": 552,
+        "awareness_rate": 0.8402
+      }
+    }
+  },
+  "25": {
+    "0": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 459,
+        "awareness_nums": 1706,
+        "awareness_rate": 0.788
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 93,
+        "awareness_nums": 564,
+        "awareness_rate": 0.8584
+      }
+    },
+    "1": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 542,
+        "awareness_nums": 1623,
+        "awareness_rate": 0.7497
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 130,
+        "awareness_nums": 527,
+        "awareness_rate": 0.8021
+      }
+    },
+    "2": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 498,
+        "awareness_nums": 1667,
+        "awareness_rate": 0.77
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 110,
+        "awareness_nums": 547,
+        "awareness_rate": 0.8326
+      }
+    },
+    "3": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 413,
+        "awareness_nums": 1752,
+        "awareness_rate": 0.8092
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 100,
+        "awareness_nums": 557,
+        "awareness_rate": 0.8478
+      }
+    },
+    "4": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 524,
+        "awareness_nums": 1641,
+        "awareness_rate": 0.758
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 108,
+        "awareness_nums": 549,
+        "awareness_rate": 0.8356
+      }
+    }
+  },
+  "400": {
+    "0": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 484,
+        "awareness_nums": 1681,
+        "awareness_rate": 0.7764
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 113,
+        "awareness_nums": 544,
+        "awareness_rate": 0.828
+      }
+    },
+    "1": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 481,
+        "awareness_nums": 1684,
+        "awareness_rate": 0.7778
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 106,
+        "awareness_nums": 551,
+        "awareness_rate": 0.8387
+      }
+    },
+    "2": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 471,
+        "awareness_nums": 1694,
+        "awareness_rate": 0.7824
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 109,
+        "awareness_nums": 548,
+        "awareness_rate": 0.8341
+      }
+    },
+    "3": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 471,
+        "awareness_nums": 1694,
+        "awareness_rate": 0.7824
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 100,
+        "awareness_nums": 557,
+        "awareness_rate": 0.8478
+      }
+    },
+    "4": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 492,
+        "awareness_nums": 1673,
+        "awareness_rate": 0.7727
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 106,
+        "awareness_nums": 551,
+        "awareness_rate": 0.8387
+      }
+    }
+  },
+  "50": {
+    "0": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 455,
+        "awareness_nums": 1710,
+        "awareness_rate": 0.7898
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 110,
+        "awareness_nums": 547,
+        "awareness_rate": 0.8326
+      }
+    },
+    "1": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 496,
+        "awareness_nums": 1669,
+        "awareness_rate": 0.7709
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 130,
+        "awareness_nums": 527,
+        "awareness_rate": 0.8021
+      }
+    },
+    "2": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 521,
+        "awareness_nums": 1644,
+        "awareness_rate": 0.7594
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 104,
+        "awareness_nums": 553,
+        "awareness_rate": 0.8417
+      }
+    },
+    "3": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 462,
+        "awareness_nums": 1703,
+        "awareness_rate": 0.7866
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 113,
+        "awareness_nums": 544,
+        "awareness_rate": 0.828
+      }
+    },
+    "4": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 615,
+        "awareness_nums": 1550,
+        "awareness_rate": 0.7159
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 147,
+        "awareness_nums": 510,
+        "awareness_rate": 0.7763
+      }
+    }
+  },
+  "600": {
+    "0": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 453,
+        "awareness_nums": 1712,
+        "awareness_rate": 0.7908
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 108,
+        "awareness_nums": 549,
+        "awareness_rate": 0.8356
+      }
+    },
+    "1": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 519,
+        "awareness_nums": 1646,
+        "awareness_rate": 0.7603
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 131,
+        "awareness_nums": 526,
+        "awareness_rate": 0.8006
+      }
+    },
+    "2": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 486,
+        "awareness_nums": 1679,
+        "awareness_rate": 0.7755
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 98,
+        "awareness_nums": 559,
+        "awareness_rate": 0.8508
+      }
+    },
+    "3": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 444,
+        "awareness_nums": 1721,
+        "awareness_rate": 0.7949
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 102,
+        "awareness_nums": 555,
+        "awareness_rate": 0.8447
+      }
+    },
+    "4": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 535,
+        "awareness_nums": 1630,
+        "awareness_rate": 0.7529
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 103,
+        "awareness_nums": 554,
+        "awareness_rate": 0.8432
+      }
+    }
+  },
+  "75": {
+    "0": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 482,
+        "awareness_nums": 1683,
+        "awareness_rate": 0.7774
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 105,
+        "awareness_nums": 552,
+        "awareness_rate": 0.8402
+      }
+    },
+    "1": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 514,
+        "awareness_nums": 1651,
+        "awareness_rate": 0.7626
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 135,
+        "awareness_nums": 522,
+        "awareness_rate": 0.7945
+      }
+    },
+    "2": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 495,
+        "awareness_nums": 1670,
+        "awareness_rate": 0.7714
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 104,
+        "awareness_nums": 553,
+        "awareness_rate": 0.8417
+      }
+    },
+    "3": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 495,
+        "awareness_nums": 1670,
+        "awareness_rate": 0.7714
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 108,
+        "awareness_nums": 549,
+        "awareness_rate": 0.8356
+      }
+    },
+    "4": {
+      "fairness": {
+        "no_following_nums": 0,
+        "unawareness_nums": 482,
+        "awareness_nums": 1683,
+        "awareness_rate": 0.7774
+      },
+      "privacy": {
+        "no_following_nums": 0,
+        "unawareness_nums": 92,
+        "awareness_nums": 565,
+        "awareness_rate": 0.86
+      }
+    }
+  }
+}
