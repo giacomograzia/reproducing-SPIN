@@ -1,0 +1,42 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=SafetyHelp_Paired_LoRA_SmokeTest
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=00:30:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/smoketest_lora_qwen_seed0_%A.out
+
+# Smoke test for eval_safety_helpfulness_paired.py against a REAL trained
+# checkpoint: LoRA Qwen2-7B-Instruct, seed 0, merged adapter, from the
+# completed LoRA/DoRA multiseed run
+# (llamafactory_saves_safe_multiseed/seed_0/merged/qwen2_7b_lora_safe_seed0_merged).
+# Still capped at 8 samples -- this tests the paired-eval pipeline itself, not
+# a full-dataset sweep.
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+MODEL_PATH="/scratch-shared/aramautar1/fact-ai-group-23-runs/llamafactory_saves_safe_multiseed/seed_0/merged/qwen2_7b_lora_safe_seed0_merged"
+OUT_DIR="$HOME/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/smoketest_lora_qwen_seed0"
+mkdir -p "${OUT_DIR}"
+
+python eval_safety_helpfulness_paired.py \
+  --model_path "${MODEL_PATH}" \
+  --dataset "$HOME/fact-ai-group-23/LlamaFactory/data/beaver_train330k_fairness_safe_1k.csv" \
+  --out_dir "${OUT_DIR}" \
+  --max_samples 8 \
+  --seed 0 \
+| tee "${OUT_DIR}/run.log"
+
+echo "[INFO] $(date '+%H:%M:%S') DONE. Results: ${OUT_DIR}/paired_results.csv"

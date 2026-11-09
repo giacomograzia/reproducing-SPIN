@@ -1,0 +1,59 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Origin_SafetyHelpful_Mistral_MultiSeed
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=0-2
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/Origin_SafetyHelpful_Mistral_MultiSeed_%A_%a.out
+
+# See origin_safety_helpful_multiseed_qwen.job for full rationale/comments --
+# identical structure, Mistral-7B-Instruct-v0.2 in place of Qwen.
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+SEED=$SLURM_ARRAY_TASK_ID
+MODEL_LABEL="mistral-7b-instruct-v0.2"
+MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_${MODEL_LABEL}"
+(
+  flock -x 200
+  python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${LOCKFILE}"
+
+OUT_DIR_BASE="$HOME/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/origin_mistral_multiseed/seed_${SEED}"
+
+# Both test sets judged by both judges (MD-Judge + Prometheus-2) -- origin has
+# no training step, so each dataset just reloads the same cached base model
+# and runs eval_safety_helpfulness_paired.py's own generate->judge->judge
+# pipeline again, into its own subdir.
+for DATASET_NAME in safety_test helpfulness_test; do
+  OUT_DIR="${OUT_DIR_BASE}/${DATASET_NAME}"
+  mkdir -p "${OUT_DIR}"
+
+  python eval_safety_helpfulness_paired.py \
+    --model_path "${MODEL_PATH}" \
+    --dataset "$HOME/fact-ai-group-23/src/data/${DATASET_NAME}.csv" \
+    --max_samples 2000 \
+    --out_dir "${OUT_DIR}" \
+    --seed ${SEED} \
+  | tee "${OUT_DIR}/run.log"
+
+  echo "[INFO] $(date '+%H:%M:%S') DONE seed=${SEED} dataset=${DATASET_NAME}. Results: ${OUT_DIR}/paired_results.csv"
+done

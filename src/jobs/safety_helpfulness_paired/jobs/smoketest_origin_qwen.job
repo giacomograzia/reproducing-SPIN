@@ -1,0 +1,47 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=SafetyHelp_Paired_SmokeTest
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=00:30:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/smoketest_origin_qwen_%A.out
+
+# Smoke test for eval_safety_helpfulness_paired.py: runs the ORIGIN (base, not
+# fine-tuned) Qwen2-7B-Instruct model on a tiny 8-sample cut of the BeaverTails
+# fairness-safe split, through both judges (MD-Judge safety + Prometheus-2
+# helpfulness), to confirm the full generate -> free vLLM -> safety-judge ->
+# free -> helpfulness-judge pipeline runs end to end and produces a
+# paired_results.csv before trusting it on a real fine-tuned checkpoint or the
+# full dataset.
+#
+# Resumable: each stage in eval_safety_helpfulness_paired.py skips itself if
+# its output file already exists (generations.csv / safety_results.json /
+# helpfulness_results.json), so resubmitting this job after a crash is safe --
+# delete the OUT_DIR below first if you want a clean re-run instead.
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+OUT_DIR="$HOME/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/smoketest_origin_qwen"
+mkdir -p "${OUT_DIR}"
+
+python eval_safety_helpfulness_paired.py \
+  --model_path "Qwen/Qwen2-7B-Instruct" \
+  --dataset "$HOME/fact-ai-group-23/LlamaFactory/data/beaver_train330k_fairness_safe_1k.csv" \
+  --out_dir "${OUT_DIR}" \
+  --max_samples 8 \
+  --seed 0 \
+| tee "${OUT_DIR}/run.log"
+
+echo "[INFO] $(date '+%H:%M:%S') DONE. Results: ${OUT_DIR}/paired_results.csv"

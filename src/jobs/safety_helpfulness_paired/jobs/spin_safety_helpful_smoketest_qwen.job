@@ -1,0 +1,99 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Spin_SafetyHelpful_Qwen_SmokeTest
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=0-0
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/Spin_SafetyHelpful_Qwen_SmokeTest_%A_%a.out
+
+# One array task per seed (0-2). Runs SPIN suppression -- but with dataset1/
+# dataset2 pointed at safety_train/helpfulness_train (this extension's own
+# training data, same files the FFT/LoRA/DoRA safety_helpfulness baselines
+# train on) instead of run_spin_qwen_multiseed.job's beaver_train330k
+# privacy/fairness sets -- and then, instead of main.py's own fairness/
+# privacy-only salad eval, runs a paired
+# safety+helpfulness eval (MD-Judge + Prometheus-2) via run_spin_safety_helpful.py
+# against BOTH test sets (safety_test.csv, helpfulness_test.csv; tiny 8-sample
+# cap here) from the SAME suppressed checkpoint.
+#
+# This has to happen in the SAME process as SPIN itself: the suppressed
+# checkpoint is written to $TMPDIR/model_dir and does not outlive this job
+# (same reasoning as main.py's --eval_refusal extension and
+# n1_localization_controls/scripts/run_n1_run.py).
+#
+# Uses $TMPDIR (job-private scratch-local, auto-cleaned) for score/model dirs
+# so concurrent array tasks never collide -- same convention as
+# run_spin_qwen_multiseed.job.
+#
+# Resumable at the whole-run level: run_spin_safety_helpful.py checks
+# <out_dir>/summary.json["complete"] at start and exits immediately if already
+# done, so resubmitting this array job is always safe (SPIN's suppression
+# itself has no finer-grained checkpoint, so a crash mid-run means redoing the
+# whole seed, not just the eval half).
+#
+# NEW SCRIPT -- has not been smoke-tested on GPU yet. Submit with
+# --array=0-0 and a small --nsamples/--max_samples override first before
+# trusting the full 3-seed array.
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+SEED=$SLURM_ARRAY_TASK_ID
+SCOREDIR="${TMPDIR}/significance_score_safety_helpful/seed_${SEED}"
+MODELDIR="${TMPDIR}/spin_models_safety_helpful/seed_${SEED}"
+MODEL_LABEL="qwen2-7b-instruct"
+MODEL_PATH="Qwen/Qwen2-7B-Instruct"
+NSAMPLES=8
+
+log() { echo "[$(date '+%H:%M:%S')] seed=${SEED} $*"; }
+
+# Pre-warm the HF cache before any array task tries to load the model (same
+# fix as run_spin_qwen_multiseed.job -- concurrent tasks racing on the same
+# not-yet-cached blob previously corrupted downloads).
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_${MODEL_LABEL}"
+(
+  flock -x 200
+  python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${LOCKFILE}"
+log "Cache pre-warm complete for ${MODEL_PATH}"
+
+# Separate dir from spin_qwen_multiseed/ -- sharing it let this smoketest's
+# tiny-sample summary.json["complete"]=True cause the real multiseed run to
+# skip itself and reuse the smoketest's 8-sample results.
+OUT_DIR="$HOME/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/spin_qwen_smoketest/seed_${SEED}"
+mkdir -p "${OUT_DIR}"
+
+python run_spin_safety_helpful.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset1 safety_train \
+  --dataset2 helpfulness_train \
+  --target_module mlp \
+  --p 5e-7 \
+  --q 5e-7 \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir "${SCOREDIR}" \
+  --model_dir "${MODELDIR}" \
+  --eval_dataset "$HOME/fact-ai-group-23/src/data/safety_test.csv" \
+  --eval_dataset2 "$HOME/fact-ai-group-23/src/data/helpfulness_test.csv" \
+  --max_samples 8 \
+  --out_dir "${OUT_DIR}" \
+| tee "${OUT_DIR}/run.log"
+
+log "DONE. Results: ${OUT_DIR}/paired_results.csv"

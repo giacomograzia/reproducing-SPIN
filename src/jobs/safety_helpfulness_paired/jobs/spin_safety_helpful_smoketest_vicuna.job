@@ -1,0 +1,77 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Spin_SafetyHelpful_Vicuna_SmokeTest
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=0-0
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/Spin_SafetyHelpful_Vicuna_SmokeTest_%A_%a.out
+
+# See spin_safety_helpful_multiseed_qwen.job for full rationale/comments --
+# identical structure, lmsys/vicuna-7b-v1.5 in place of Qwen. dataset1/
+# dataset2 are safety_train/helpfulness_train (this extension's own training
+# data), NOT run_spin_vicuna_multiseed.job's beaver privacy/fairness sets --
+# target_module/p/q still match run_spin_vicuna_multiseed.job.
+#
+# NEW SCRIPT -- has not been smoke-tested on GPU yet. Submit with
+# --array=0-0 and a small --nsamples/--max_samples override first before
+# trusting the full 3-seed array.
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+SEED=$SLURM_ARRAY_TASK_ID
+SCOREDIR="${TMPDIR}/significance_score_safety_helpful/seed_${SEED}"
+MODELDIR="${TMPDIR}/spin_models_safety_helpful/seed_${SEED}"
+MODEL_LABEL="vicuna-7b-v1.5"
+MODEL_PATH="lmsys/vicuna-7b-v1.5"
+NSAMPLES=8
+
+log() { echo "[$(date '+%H:%M:%S')] seed=${SEED} $*"; }
+
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_${MODEL_LABEL}"
+(
+  flock -x 200
+  python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${LOCKFILE}"
+log "Cache pre-warm complete for ${MODEL_PATH}"
+
+# Separate dir from spin_vicuna_multiseed/ -- sharing it let this smoketest's
+# tiny-sample summary.json["complete"]=True cause the real multiseed run to
+# skip itself and reuse the smoketest's 8-sample results.
+OUT_DIR="$HOME/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/spin_vicuna_smoketest/seed_${SEED}"
+mkdir -p "${OUT_DIR}"
+
+python run_spin_safety_helpful.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset1 safety_train \
+  --dataset2 helpfulness_train \
+  --target_module mlp \
+  --p 5e-7 \
+  --q 5e-7 \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir "${SCOREDIR}" \
+  --model_dir "${MODELDIR}" \
+  --eval_dataset "$HOME/fact-ai-group-23/src/data/safety_test.csv" \
+  --eval_dataset2 "$HOME/fact-ai-group-23/src/data/helpfulness_test.csv" \
+  --max_samples 8 \
+  --out_dir "${OUT_DIR}" \
+| tee "${OUT_DIR}/run.log"
+
+log "DONE. Results: ${OUT_DIR}/paired_results.csv"

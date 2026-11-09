@@ -1,0 +1,79 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Origin_SafetyHelpful_Qwen_MultiSeed
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=0-2
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/Origin_SafetyHelpful_Qwen_MultiSeed_%A_%a.out
+
+# One array task per seed (0-2). Origin has no training step -- each task runs
+# eval_safety_helpfulness_paired.py against the unmodified base model twice,
+# once per test set (safety_test.csv, helpfulness_test.csv; 2000-sample cap
+# each), so both datasets get judged by both judges (MD-Judge + Prometheus-2),
+# not just safety_test.csv alone.
+#
+# Note: origin generation is deterministic (temperature=0, greedy decoding in
+# both the model and both judges), so all 3 seeds should produce byte-identical
+# results (same pattern already observed for the plain origin multiseed runs --
+# see run_origin_qwen_multiseed.job/run_refusal_origin_qwen.job). Kept as an
+# array for structural symmetry with the SPIN version, not because seed varies
+# anything here.
+#
+# Resumable: eval_safety_helpfulness_paired.py skips each stage
+# (generations.csv / safety_results.json / helpfulness_results.json) if its
+# output already exists, so resubmitting after a crash is safe.
+#
+# Run the smoketest_origin_qwen.job in the same directory first if this is the
+# first time this script runs against a new environment/model.
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+SEED=$SLURM_ARRAY_TASK_ID
+MODEL_LABEL="qwen2-7b-instruct"
+MODEL_PATH="Qwen/Qwen2-7B-Instruct"
+
+# Pre-warm the HF cache before any array task tries to load the model --
+# without this, all 3 seeds launch simultaneously and race on downloading the
+# same not-yet-cached blob (same fix as run_origin_qwen_multiseed.job).
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_${MODEL_LABEL}"
+(
+  flock -x 200
+  python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${LOCKFILE}"
+
+OUT_DIR_BASE="$HOME/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/origin_qwen_multiseed/seed_${SEED}"
+
+# Both test sets judged by both judges (MD-Judge + Prometheus-2) -- origin has
+# no training step, so each dataset just reloads the same cached base model
+# and runs eval_safety_helpfulness_paired.py's own generate->judge->judge
+# pipeline again, into its own subdir.
+for DATASET_NAME in safety_test helpfulness_test; do
+  OUT_DIR="${OUT_DIR_BASE}/${DATASET_NAME}"
+  mkdir -p "${OUT_DIR}"
+
+  python eval_safety_helpfulness_paired.py \
+    --model_path "${MODEL_PATH}" \
+    --dataset "$HOME/fact-ai-group-23/src/data/${DATASET_NAME}.csv" \
+    --max_samples 2000 \
+    --out_dir "${OUT_DIR}" \
+    --seed ${SEED} \
+  | tee "${OUT_DIR}/run.log"
+
+  echo "[INFO] $(date '+%H:%M:%S') DONE seed=${SEED} dataset=${DATASET_NAME}. Results: ${OUT_DIR}/paired_results.csv"
+done
