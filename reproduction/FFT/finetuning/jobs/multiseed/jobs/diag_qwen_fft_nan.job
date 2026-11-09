@@ -1,0 +1,60 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=FFT_Qwen_NaN_Diag
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --time=01:30:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/FFT/finetuning/jobs/multiseed/outputs/diag_qwen_fft_nan_%j.out
+
+# Diagnostic for the Qwen2 FFT divergence (all 3 seeds of
+# full_fine_tuning_qwen_multiseed.job hit loss->NaN within the first 5-20
+# steps, at lr < 1.3e-6). Mistral/Vicuna with identical settings trained fine.
+# Runs 25 steps per (variant, seed) and prints the per-step loss/grad_norm, so
+# we can tell which setting removes the NaN before paying for a full retrain.
+# warmup_steps 75 (= 0.1 x 750 real steps) instead of warmup_ratio 0.1, so the
+# lr over these 25 steps matches the real run exactly (a ratio would be taken
+# of max_steps=25 and ramp 30x faster).
+# Short and cheap, so not checkpointed; outputs go to node-local $TMPDIR.
+
+set -uo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+source "$CONDA_ROOT/etc/profile.d/conda.sh"
+
+cd $HOME/fact-ai-group-23/LlamaFactory/
+
+run_variant () {
+  local NAME=$1 SEED=$2; shift 2
+  local OUT="${TMPDIR}/diag_${NAME}_seed${SEED}"
+  echo "=================== VARIANT=${NAME} SEED=${SEED} ($*) ==================="
+  conda run -n LlFactory --no-capture-output python -m llamafactory.cli train \
+    --stage sft --do_train True \
+    --model_name_or_path Qwen/Qwen2-7B-Instruct \
+    --preprocessing_num_workers 16 --finetuning_type full --template qwen \
+    --dataset_dir data \
+    --dataset beaver_train330k_privacy_safe_1k,beaver_train330k_fairness_safe_1k \
+    --cutoff_len 2048 --learning_rate 5e-06 --num_train_epochs 3.0 \
+    --max_samples 100000 --per_device_train_batch_size 2 \
+    --gradient_accumulation_steps 8 --gradient_checkpointing True \
+    --lr_scheduler_type cosine --max_grad_norm 1.0 --warmup_steps 75 \
+    --adam_beta1 0.9 --adam_beta2 0.999 --adam_epsilon 1e-8 --weight_decay 0.0 \
+    --packing False --enable_thinking True --report_to none \
+    --optim adamw_bnb_8bit --trust_remote_code True \
+    --include_num_input_tok True \
+    --output_dir "${OUT}" --overwrite_output_dir True \
+    --logging_steps 1 --max_steps 25 --save_strategy no \
+    --seed ${SEED} "$@" 2>&1 | grep -E "'loss'|Traceback|Error" | head -40
+  rm -rf "${OUT}"
+}
+
+for SEED in 2 0; do
+  run_variant baseline_bf16_sdpa ${SEED} --bf16 True --flash_attn auto
+  run_variant bf16_eager         ${SEED} --bf16 True --flash_attn disabled
+  run_variant fp16_sdpa          ${SEED} --fp16 True --flash_attn auto
+done
+echo "[DIAG] done"

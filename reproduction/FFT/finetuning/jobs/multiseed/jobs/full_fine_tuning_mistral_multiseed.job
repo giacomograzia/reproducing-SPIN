@@ -1,0 +1,113 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=FFT_Mistral_MultiSeed
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=0-2
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/FFT/finetuning/jobs/multiseed/outputs/full_fine_tuning_mistral_multiseed_%A_%a.out
+
+
+set -euo pipefail
+trap 'echo "[ERROR] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+# See full_fine_tuning_qwen_multiseed.job for why this uses `conda run -n`
+# instead of `source activate`: switching envs twice in one shell corrupts
+# PATH/PYTHONPATH and silently breaks the second env (confirmed via smoke
+# test: eval crashed with "ModuleNotFoundError: No module named 'vllm'").
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+source "$CONDA_ROOT/etc/profile.d/conda.sh"
+
+SEED=$SLURM_ARRAY_TASK_ID
+
+SCRATCH_SHARED="/scratch-shared/${USER}"
+OUT_DIR="${SCRATCH_SHARED}/FFT/Mistral-7b-Instruct/full/seed${SEED}"
+LOGDIR="$HOME/fact-ai-group-23/reproduction/FFT/finetuning/logs"
+mkdir -p "${LOGDIR}" "${OUT_DIR}"
+
+# Item-level (per-prompt) labels for Table 1's SPIN-vs-baseline significance
+# test -- see reproduction/figures_and_tables/baselines-table-1/item_level_stats.py.
+LABELS_OUT_DIR="$HOME/fact-ai-group-23/reproduction/figures_and_tables/baselines-table-1/item_level_labels/fft_mistral/seed_${SEED}"
+mkdir -p "${LABELS_OUT_DIR}"
+
+# Pre-warm the HF cache -- see full_fine_tuning_qwen_multiseed.job for why.
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_mistral-7b-instruct-v0.2"
+(
+  flock -x 200
+  conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('mistralai/Mistral-7B-Instruct-v0.2')
+"
+) 200>"${LOCKFILE}"
+
+# ---- Train (full fine-tune) ----
+cd $HOME/fact-ai-group-23/LlamaFactory/
+
+conda run -n LlFactory --no-capture-output python -m llamafactory.cli train \
+  --stage sft \
+  --do_train True \
+  --model_name_or_path mistralai/Mistral-7B-Instruct-v0.2 \
+  --preprocessing_num_workers 16 \
+  --finetuning_type full \
+  --template mistral \
+  --flash_attn auto \
+  --dataset_dir data \
+  --dataset beaver_train330k_privacy_safe_1k,beaver_train330k_fairness_safe_1k \
+  --cutoff_len 2048 \
+  --learning_rate 5e-06 \
+  --num_train_epochs 3.0 \
+  --max_samples 100000 \
+  --per_device_train_batch_size 2 \
+  --gradient_accumulation_steps 8 \
+  --lr_scheduler_type cosine \
+  --max_grad_norm 1.0 \
+  --logging_steps 5 \
+  --warmup_ratio 0.1 \
+  --adam_beta1 0.9 \
+  --adam_beta2 0.999 \
+  --adam_epsilon 1e-8 \
+  --weight_decay 0.0 \
+  --packing False \
+  --enable_thinking True \
+  --report_to none \
+  --output_dir "${OUT_DIR}" \
+  --bf16 True \
+  --plot_loss True \
+  --trust_remote_code True \
+  --ddp_timeout 180000000 \
+  --include_num_input_tok True \
+  --optim adamw_bnb_8bit \
+  --save_steps 1000 \
+  --seed ${SEED}
+
+# ---- Restore original tokenizer ----
+# See full_fine_tuning_qwen_multiseed.job for why: LlFactory re-saves
+# tokenizer.json with a newer `tokenizers` library that FACT's older one
+# can't parse. Fine-tuning doesn't change the vocab, so reuse the original.
+SNAPSHOT_DIR="$(conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+print(snapshot_download('mistralai/Mistral-7B-Instruct-v0.2', allow_patterns=['tokenizer*','vocab*','merges*','special_tokens_map.json','added_tokens.json','chat_template*'], local_files_only=True))
+")"
+cp -f "${SNAPSHOT_DIR}"/tokenizer* "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/vocab* "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/merges* "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/special_tokens_map.json "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/added_tokens.json "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/chat_template* "${OUT_DIR}/" 2>/dev/null || true
+echo "[INFO] Restored original tokenizer files from ${SNAPSHOT_DIR} into ${OUT_DIR}"
+
+# ---- Eval ----
+cd $HOME/fact-ai-group-23/src/
+
+conda run -n FACT --no-capture-output python eval_origin.py \
+  --model mistral-7b-instruct-v0.2 \
+  --model_path "${OUT_DIR}" \
+  --seed ${SEED} \
+  --labels_out_dir "${LABELS_OUT_DIR}" \
+| tee "${LOGDIR}/fft_eval_mistral_seed${SEED}.log"

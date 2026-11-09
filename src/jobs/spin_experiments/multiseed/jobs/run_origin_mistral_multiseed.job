@@ -1,0 +1,50 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Origin_Mistral_MultiSeed
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=0-2
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/spin_experiments/multiseed/outputs/Origin_Mistral_MultiSeed_%A_%a.out
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+SEED=$SLURM_ARRAY_TASK_ID
+MODEL_LABEL="mistral-7b-instruct-v0.2"
+MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+
+LOGDIR="$HOME/fact-ai-group-23/src/multiseed_logs/origin_mistral"
+mkdir -p "${LOGDIR}"
+
+# Item-level (per-prompt) labels for Table 1's SPIN-vs-baseline significance
+# test -- see reproduction/figures_and_tables/baselines-table-1/item_level_stats.py.
+LABELS_OUT_DIR="$HOME/fact-ai-group-23/reproduction/figures_and_tables/baselines-table-1/item_level_labels/origin_mistral/seed_${SEED}"
+mkdir -p "${LABELS_OUT_DIR}"
+
+# Pre-warm the HF cache -- see run_origin_qwen_multiseed.job for why.
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_${MODEL_LABEL}"
+(
+  flock -x 200
+  python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${LOCKFILE}"
+
+# Origin evaluation only (no SPIN, no importance scores)
+srun python eval_origin.py \
+  --model ${MODEL_LABEL} \
+  --model_path ${MODEL_PATH} \
+  --seed ${SEED} \
+  --labels_out_dir "${LABELS_OUT_DIR}" \
+| tee "${LOGDIR}/origin_eval_seed${SEED}.log"

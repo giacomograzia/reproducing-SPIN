@@ -1,0 +1,29 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=FFT_Mistral
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=00:50:00
+#SBATCH --output=reproduction/FFT/FFT_Mistral_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+SCOREDIR="/scratch-shared/scur0168/significance_score"
+MODEL_LABEL="mistral-7b-instruct-v0.2"
+MODEL_PATH="/scratch-shared/scur0168/FFT/Mistral-7b-Instruct/merged"
+NSAMPLES=128
+SEED=0
+
+# Origin evaluation only (no SPIN, no importance scores)
+srun python eval_origin.py \
+  --model ${MODEL_LABEL} \
+  --model_path ${MODEL_PATH} \
+  --seed ${SEED}

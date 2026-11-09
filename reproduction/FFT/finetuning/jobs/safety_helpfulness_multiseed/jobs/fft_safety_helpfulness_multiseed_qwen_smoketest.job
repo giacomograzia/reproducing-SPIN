@@ -1,0 +1,119 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=00:45:00
+#SBATCH --job-name=FFT_Qwen_SafetyHelpful_SmokeTest
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/FFT/finetuning/jobs/safety_helpfulness_multiseed/outputs/fft_qwen_safety_helpfulness_smoketest_%A.out
+
+# Smoke test for fft_safety_helpfulness_multiseed_qwen.job: single seed (0),
+# max_samples cut from 100000 to 4, 1 epoch instead of 3, eval capped at 8
+# samples per test set instead of 2000. Confirms env + the new
+# safety,helpfulness_train dataset registration + the two-dataset eval loop
+# work end-to-end on GPU before submitting the full seed 0-2 array.
+#
+# Uses its OWN output dirs (smoketest_seed0 / *_smoketest) rather than the
+# real multiseed job's -- sharing them would let this run's tiny results
+# masquerade as the real ones (same bug class fixed for the SPIN smoketests
+# earlier: see spin_safety_helpful_smoketest_qwen.job).
+
+set -uo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+source "$CONDA_ROOT/etc/profile.d/conda.sh"
+
+SEED=0
+
+SCRATCH_SHARED="/scratch-shared/${USER}"
+OUT_DIR="${SCRATCH_SHARED}/FFT/Qwen2-7B-Instruct/full_safety_helpfulness/smoketest_seed${SEED}"
+EVAL_OUT_BASE="$HOME/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/fft_qwen_safety_helpfulness_smoketest/seed_${SEED}"
+mkdir -p "${OUT_DIR}" "${EVAL_OUT_BASE}"
+
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_qwen2-7b-instruct"
+(
+  flock -x 200
+  conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('Qwen/Qwen2-7B-Instruct')
+"
+) 200>"${LOCKFILE}"
+
+cd $HOME/fact-ai-group-23/LlamaFactory/
+
+conda run -n LlFactory --no-capture-output python -m llamafactory.cli train \
+  --stage sft \
+  --do_train True \
+  --model_name_or_path Qwen/Qwen2-7B-Instruct \
+  --preprocessing_num_workers 16 \
+  --finetuning_type full \
+  --template qwen \
+  --flash_attn auto \
+  --dataset_dir data \
+  --dataset safety,helpfulness_train \
+  --cutoff_len 128 \
+  --fp16 True \
+  --learning_rate 5e-06 \
+  --num_train_epochs 1 \
+  --max_samples 4 \
+  --per_device_train_batch_size 1 \
+  --gradient_accumulation_steps 1 \
+  --lr_scheduler_type constant \
+  --logging_steps 1 \
+  --save_steps 1000 \
+  --packing False \
+  --enable_thinking False \
+  --report_to none \
+  --output_dir "${OUT_DIR}" \
+  --trust_remote_code True \
+  --optim adamw_bnb_8bit \
+  --seed ${SEED}
+
+TRAIN_STATUS=$?
+echo "TRAIN_EXIT_CODE: ${TRAIN_STATUS}"
+
+# ---- Restore original tokenizer (see full multiseed job for why) ----
+SNAPSHOT_DIR="$(conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+print(snapshot_download('Qwen/Qwen2-7B-Instruct', allow_patterns=['tokenizer*','vocab*','merges*','special_tokens_map.json','added_tokens.json','chat_template*'], local_files_only=True))
+")"
+cp -f "${SNAPSHOT_DIR}"/tokenizer* "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/vocab* "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/merges* "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/special_tokens_map.json "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/added_tokens.json "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/chat_template* "${OUT_DIR}/" 2>/dev/null || true
+echo "[INFO] Restored original tokenizer files from ${SNAPSHOT_DIR} into ${OUT_DIR}"
+
+cd $HOME/fact-ai-group-23/src/
+
+EVAL_STATUS=0
+for DATASET_NAME in safety_test helpfulness_test; do
+  EVAL_OUT_DIR="${EVAL_OUT_BASE}/${DATASET_NAME}"
+  mkdir -p "${EVAL_OUT_DIR}"
+
+  conda run -n FACT --no-capture-output python eval_safety_helpfulness_paired.py \
+    --model_path "${OUT_DIR}" \
+    --dataset "$HOME/fact-ai-group-23/src/data/${DATASET_NAME}.csv" \
+    --max_samples 8 \
+    --out_dir "${EVAL_OUT_DIR}" \
+    --seed ${SEED} \
+  | tee "${EVAL_OUT_DIR}/run.log"
+  ds_status=${PIPESTATUS[0]}
+  [ "$ds_status" -eq 0 ] || EVAL_STATUS=$ds_status
+
+  echo "[INFO] $(date '+%H:%M:%S') dataset=${DATASET_NAME} exit=${ds_status}. Results: ${EVAL_OUT_DIR}/paired_results.csv"
+done
+echo "EVAL_EXIT_CODE: ${EVAL_STATUS}"
+
+if [ "$TRAIN_STATUS" -eq 0 ] && [ "$EVAL_STATUS" -eq 0 ]; then
+  echo "SMOKE_TEST_RESULT: PASS"
+else
+  echo "SMOKE_TEST_RESULT: FAIL (train=${TRAIN_STATUS} eval=${EVAL_STATUS})"
+fi
+rm -rf "${OUT_DIR}"

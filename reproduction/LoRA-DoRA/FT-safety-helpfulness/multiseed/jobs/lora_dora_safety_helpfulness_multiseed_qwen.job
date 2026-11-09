@@ -1,0 +1,383 @@
+#!/bin/bash
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=LoRA_DoRA_SafetyHelpful_Qwen_MultiSeed
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=0-2
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/LoRA-DoRA/FT-safety-helpfulness/multiseed/outputs/LoRA_DoRA_SafetyHelpful_Qwen_MultiSeed_%A_%a.out
+#SBATCH --error=/home/aramautar1/fact-ai-group-23/reproduction/LoRA-DoRA/FT-safety-helpfulness/multiseed/errors/LoRA_DoRA_SafetyHelpful_Qwen_MultiSeed_%A_%a.err
+
+# Trains Qwen2-7B-Instruct with LoRA and DoRA on the NEW combined
+# safety+helpfulness training set (--dataset safety,helpfulness_train),
+# merges each adapter, then evaluates the merged checkpoint on BOTH held-out
+# test sets (safety_test.csv, helpfulness_test.csv) judged by BOTH judges
+# (MD-Judge + Prometheus-2) via eval_safety_helpfulness_paired.py -- same
+# eval pattern as origin_safety_helpful_multiseed_qwen.job.
+#
+# Train/merge/env-handling logic and hyperparameters copied unmodified from
+# the proven-working
+# reproduction/LoRA-DoRA/FT-safe-datasets/multiseed/jobs/full_pipeline_lora_dora_safe_QWEN_multiseed.job
+# -- including its fp16 fix (Qwen LoRA/DoRA under bf16 reliably corrupts to
+# NaN by the final step; fp16 + AMP's GradScaler self-heals from the same
+# event). Only --dataset, the scratch root, the eval step, and
+# --gradient_checkpointing (see below) changed.
+#
+# --gradient_checkpointing True added to train_model()'s llamafactory.cli
+# call -- the source job never set it, and a real run against this dataset
+# OOM'd on the very first training step (tried to allocate 25.96 GiB with
+# only 13.35 GiB free on a 93.34 GiB H100). Root cause: Qwen2-7B's ~152k-token
+# vocab is ~4.75x Mistral/Vicuna's ~32k, so the cross-entropy loss's
+# [batch, seq_len, vocab] logits tensor is proportionally larger for Qwen at
+# the same batch/seq settings -- Mistral and Vicuna's real runs on the exact
+# same dataset/batch/seq-length never hit this. LoRA/DoRA's source job never
+# needed checkpointing against the old, much-shorter fairness/privacy
+# dataset; helpfulness_train.csv's longer sequences (up to --cutoff_len 2048)
+# tipped Qwen over.
+
+set -euo pipefail
+trap 'echo "[ERROR] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+if [ -f "$CONDA_ROOT/etc/profile.d/conda.sh" ]; then
+  # shellcheck disable=SC1091
+  source "$CONDA_ROOT/etc/profile.d/conda.sh"
+else
+  echo "[ERROR] conda.sh not found at $CONDA_ROOT; aborting." >&2
+  exit 1
+fi
+
+# =============================================================================
+# SEED (one array task per seed: 0, 1, 2)
+# =============================================================================
+SEED=$SLURM_ARRAY_TASK_ID
+
+# =============================================================================
+# PATHS
+# =============================================================================
+PROJECT_HOME="$HOME/fact-ai-group-23"
+LLAMA_FACTORY_DIR="$PROJECT_HOME/LlamaFactory"
+SRC_DIR="$PROJECT_HOME/src"
+
+SCRATCH_SHARED="${SCRATCH_SHARED:-/scratch-shared/$USER}"
+[ -d "$SCRATCH_SHARED" ] || { echo "[ERROR] scratch-shared not found: $SCRATCH_SHARED" >&2; exit 1; }
+
+RUN_ROOT="$SCRATCH_SHARED/fact-ai-group-23-runs"
+# Separate root from llamafactory_saves_safe_multiseed/ (the old
+# fairness/privacy reproduction run) so this never collides with it.
+SAVES_ROOT="$RUN_ROOT/llamafactory_saves_safety_helpfulness_multiseed/seed_${SEED}"
+ADAPTER_ROOT="$SAVES_ROOT/adapters"
+MERGED_ROOT="$SAVES_ROOT/merged"
+CFG_ROOT="$SAVES_ROOT/merge_cfgs"
+mkdir -p "$ADAPTER_ROOT" "$MERGED_ROOT" "$CFG_ROOT"
+
+EVAL_OUT_ROOT="$PROJECT_HOME/src/jobs/safety_helpfulness_paired/outputs/lora_dora_qwen_safety_helpfulness_multiseed/seed_${SEED}"
+mkdir -p "$EVAL_OUT_ROOT"
+
+# =============================================================================
+# DATASET (SAFETY + HELPFULNESS)
+# =============================================================================
+COMBINED_DATASET="safety,helpfulness_train"
+
+# =============================================================================
+# PRE-FLIGHT CHECKS
+# =============================================================================
+echo "========================================"
+echo "Preflight checks (seed=${SEED})"
+echo "Start time: $(date)"
+echo "Scratch root: $RUN_ROOT"
+echo "========================================"
+
+df -h "$SCRATCH_SHARED" || true
+
+conda info --envs | grep -q "LlFactory" || { echo "[ERROR] conda env LlFactory missing" >&2; exit 1; }
+conda info --envs | grep -q "FACT" || { echo "[ERROR] conda env FACT missing" >&2; exit 1; }
+
+[ -d "$LLAMA_FACTORY_DIR" ] || { echo "[ERROR] LlamaFactory dir missing: $LLAMA_FACTORY_DIR" >&2; exit 1; }
+
+DATASET_INFO="$LLAMA_FACTORY_DIR/data/dataset_info.json"
+if [ -f "$DATASET_INFO" ]; then
+  grep -q "\"safety\"" "$DATASET_INFO" || echo "[WARN] 'safety' not found in $DATASET_INFO (verify dataset registration)."
+  grep -q "\"helpfulness_train\"" "$DATASET_INFO" || echo "[WARN] 'helpfulness_train' not found in $DATASET_INFO (verify dataset registration)."
+else
+  echo "[WARN] dataset_info.json not found at $DATASET_INFO (dataset resolution may fail depending on your setup)."
+fi
+
+# =============================================================================
+# MODEL
+# =============================================================================
+MODEL_PATH="Qwen/Qwen2-7B-Instruct"
+TEMPLATE="qwen"
+MODEL_LABEL="qwen2-7b-instruct"
+
+# Pre-warm the HF cache before any array task starts training -- without
+# this, all 3 seeds launch simultaneously and race on downloading the same
+# not-yet-cached blob, corrupting each other's partial downloads.
+PREWARM_LOCK="/scratch-shared/${USER}/.hf_cache_lock_qwen2_7b"
+(
+  flock -x 200
+  conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${PREWARM_LOCK}"
+
+# =============================================================================
+# METHODS
+# =============================================================================
+METHODS=(lora dora)
+
+# =============================================================================
+# PAPER HYPERPARAMETERS (Appendix F)
+# =============================================================================
+EPOCHS="3"
+LR="3e-4"
+BATCH_SIZE="32"
+SCHEDULER="cosine"
+WARMUP_RATIO="0.1"
+
+OPTIM="adamw_torch"
+ADAM_BETA1="0.9"
+ADAM_BETA2="0.999"
+ADAM_EPS="1e-8"
+WEIGHT_DECAY="0.0"
+
+LORA_RANK="8"
+LORA_ALPHA="16"
+
+# See header comment: Qwen LoRA/DoRA under bf16 corrupts to NaN; fp16 self-heals.
+FP16="True"
+
+# BATCH_SIZE=32 (effective, matching Table 4) is split across
+# PER_DEVICE_BATCH_SIZE x GRAD_ACC = 8 x 4 = 32, instead of running the full
+# 32 per device with grad_accum=1. A real run OOM'd on the very first step
+# trying to allocate 25.96 GiB for the cross-entropy loss's
+# [batch, seq_len, vocab] logits tensor (only 13.35 GiB free) --
+# --gradient_checkpointing True (added first) had NO effect on this, because
+# checkpointing only reduces intermediate transformer-layer activations, not
+# the final logits/loss tensor, which is sized directly by
+# per_device_train_batch_size. Shrinking the per-device batch (not the
+# effective batch -- GRAD_ACC compensates) is the only lever that actually
+# shrinks that specific tensor.
+PER_DEVICE_BATCH_SIZE="8"
+GRAD_ACC="4"
+
+DRY_RUN="${DRY_RUN:-0}"
+
+# =============================================================================
+# FUNCTIONS
+# =============================================================================
+train_model() {
+  local method="$1"      # lora|dora
+
+  local tag="qwen2_7b_${method}_safety_helpfulness_seed${SEED}"
+  local out_dir="$ADAPTER_ROOT/$tag"
+
+  echo ""
+  echo "========== TRAIN: qwen2_7b | ${method} | seed=${SEED} =========="
+  echo "Model:     $MODEL_PATH"
+  echo "Template:  $TEMPLATE"
+  echo "Dataset:   $COMBINED_DATASET"
+  echo "Adapter:   $out_dir"
+  echo "HP: epochs=$EPOCHS lr=$LR effective_bs=$BATCH_SIZE (per_device=$PER_DEVICE_BATCH_SIZE x grad_acc=$GRAD_ACC) warmup=$WARMUP_RATIO r=$LORA_RANK alpha=$LORA_ALPHA seed=$SEED"
+  echo ""
+
+  cd "$LLAMA_FACTORY_DIR"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    mkdir -p "$out_dir"
+    echo "[DRY RUN] Skipping training; created adapter dir: $out_dir"
+    TRAIN_RESULT="$out_dir"
+    return 0
+  fi
+
+  conda run -n LlFactory bash -c "which python && python -V" || { echo "[ERROR] LlFactory environment verification failed" >&2; exit 1; }
+
+  local dora_args=()
+  if [ "$method" = "dora" ]; then
+    dora_args+=( --use_dora True )
+  fi
+
+  conda run -n LlFactory python -m llamafactory.cli train \
+    --stage sft \
+    --do_train True \
+    --model_name_or_path "$MODEL_PATH" \
+    --finetuning_type lora \
+    --template "$TEMPLATE" \
+    --trust_remote_code True \
+    --dataset_dir data \
+    --dataset "$COMBINED_DATASET" \
+    --num_train_epochs "$EPOCHS" \
+    --learning_rate "$LR" \
+    --per_device_train_batch_size "$PER_DEVICE_BATCH_SIZE" \
+    --gradient_accumulation_steps "$GRAD_ACC" \
+    --gradient_checkpointing True \
+    --lr_scheduler_type "$SCHEDULER" \
+    --warmup_ratio "$WARMUP_RATIO" \
+    --optim "$OPTIM" \
+    --adam_beta1 "$ADAM_BETA1" \
+    --adam_beta2 "$ADAM_BETA2" \
+    --adam_epsilon "$ADAM_EPS" \
+    --weight_decay "$WEIGHT_DECAY" \
+    --lora_rank "$LORA_RANK" \
+    --lora_alpha "$LORA_ALPHA" \
+    --seed "$SEED" \
+    "${dora_args[@]}" \
+    --fp16 "$FP16" \
+    --report_to none \
+    --output_dir "$out_dir"
+
+  if [ ! -d "$out_dir" ]; then
+    echo "[ERROR] Training failed: adapter directory not created at $out_dir" >&2
+    return 1
+  fi
+
+  TRAIN_RESULT="$out_dir"
+}
+
+merge_model() {
+  local method="$1"
+  local adapter_dir="$2"
+
+  local tag
+  tag="$(basename "$adapter_dir")"
+
+  local merged_dir="$MERGED_ROOT/${tag}_merged"
+  local cfg="$CFG_ROOT/merge_${tag}.yaml"
+
+  echo ""
+  echo "========== MERGE: qwen2_7b | ${method} | seed=${SEED} =========="
+  echo "Base:      $MODEL_PATH"
+  echo "Adapter:   $adapter_dir"
+  echo "Merged:    $merged_dir"
+  echo ""
+
+  cd "$LLAMA_FACTORY_DIR"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    mkdir -p "$merged_dir"
+    mkdir -p "$CFG_ROOT"
+    echo "[DRY RUN] Skipping merge; created merged dir: $merged_dir and cfg placeholder."
+    MERGE_RESULT="$merged_dir"
+    return 0
+  fi
+
+  conda run -n LlFactory bash -c "which python && python -V" || { echo "[ERROR] LlFactory environment verification failed" >&2; exit 1; }
+
+  cat > "$cfg" << EOF
+### model
+model_name_or_path: $MODEL_PATH
+adapter_name_or_path: $adapter_dir
+template: $TEMPLATE
+trust_remote_code: true
+
+### export
+export_dir: $merged_dir
+export_size: 5
+export_device: cpu
+export_legacy_format: false
+EOF
+
+  conda run -n LlFactory python -m llamafactory.cli export "$cfg"
+
+  if [ ! -d "$merged_dir" ]; then
+    echo "[ERROR] Merge failed: merged directory not created at $merged_dir" >&2
+    return 1
+  fi
+
+  MERGE_RESULT="$merged_dir"
+}
+
+evaluate_model() {
+  local method="$1"
+  local merged_dir="$2"
+
+  local tag
+  tag="$(basename "$merged_dir")"
+
+  echo ""
+  echo "========== EVAL: qwen2_7b | ${method} | seed=${SEED} =========="
+  echo "Model label: $MODEL_LABEL"
+  echo "Path:        $merged_dir"
+  echo ""
+
+  cd "$SRC_DIR"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    echo "[DRY RUN] Skipping eval."
+    return 0
+  fi
+
+  # ---- Restore original tokenizer ----
+  # LlFactory's merge/export step re-saves tokenizer.json using its newer
+  # `tokenizers` library (0.22.2), which FACT's older `tokenizers` (0.19.1,
+  # pinned for vllm compat) cannot parse. LoRA/DoRA never changes the
+  # tokenizer/vocab, so overwrite with the original base-model files instead.
+  local snapshot_dir
+  snapshot_dir="$(conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+print(snapshot_download('${MODEL_PATH}', allow_patterns=['tokenizer*','vocab*','merges*','special_tokens_map.json','added_tokens.json','chat_template*'], local_files_only=True))
+")"
+  cp -f "${snapshot_dir}"/tokenizer* "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/vocab* "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/merges* "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/special_tokens_map.json "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/added_tokens.json "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/chat_template* "${merged_dir}/" 2>/dev/null || true
+  echo "[INFO] Restored original tokenizer files from ${snapshot_dir} into ${merged_dir}"
+
+  conda run -n FACT bash -c "which python && python -V" || { echo "[ERROR] FACT environment verification failed" >&2; exit 1; }
+
+  # ---- Eval: both test sets, both judges ----
+  for DATASET_NAME in safety_test helpfulness_test; do
+    local eval_out_dir="${EVAL_OUT_ROOT}/${tag}/${DATASET_NAME}"
+    mkdir -p "${eval_out_dir}"
+
+    conda run -n FACT python eval_safety_helpfulness_paired.py \
+      --model_path "$merged_dir" \
+      --dataset "$SRC_DIR/data/${DATASET_NAME}.csv" \
+      --max_samples 2000 \
+      --out_dir "${eval_out_dir}" \
+      --seed "$SEED" \
+    | tee "${eval_out_dir}/run.log"
+
+    echo "[INFO] $(date '+%H:%M:%S') DONE method=${method} seed=${SEED} dataset=${DATASET_NAME}. Results: ${eval_out_dir}/paired_results.csv"
+  done
+}
+
+# =============================================================================
+# MAIN LOOP
+# =============================================================================
+echo ""
+echo "========================================"
+echo "Pipeline: Train -> Merge -> Eval (SAFETY+HELPFULNESS, Qwen, seed=${SEED})"
+echo "Dataset: $COMBINED_DATASET"
+echo "Start time: $(date)"
+echo "========================================"
+
+for method in "${METHODS[@]}"; do
+  TRAIN_RESULT=""
+  train_model "$method"
+  adapter_dir="$TRAIN_RESULT"
+  [ -d "$adapter_dir" ] || { echo "[ERROR] adapter_dir missing: $adapter_dir" >&2; exit 1; }
+
+  MERGE_RESULT=""
+  merge_model "$method" "$adapter_dir"
+  merged_dir="$MERGE_RESULT"
+  [ -d "$merged_dir" ] || { echo "[ERROR] merged_dir missing: $merged_dir" >&2; exit 1; }
+
+  evaluate_model "$method" "$merged_dir"
+done
+
+echo ""
+echo "========================================"
+echo "All runs completed (seed=${SEED})."
+echo "End time: $(date)"
+echo "Scratch usage:"
+du -sh "$SAVES_ROOT" || true
+echo "========================================"

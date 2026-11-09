@@ -1,0 +1,417 @@
+#!/bin/bash
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=LoRA_DoRA_Safe_QwenMistral_MultiSeed
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=0-2
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/LoRA-DoRA/FT-safe-datasets/multiseed/outputs/train_merge_eval_safe_multiseed_%A_%a.out
+#SBATCH --error=/home/aramautar1/fact-ai-group-23/reproduction/LoRA-DoRA/FT-safe-datasets/multiseed/errors/train_merge_eval_safe_multiseed_%A_%a.err
+
+set -euo pipefail
+
+trap 'echo "[ERROR] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+if [ -f "$CONDA_ROOT/etc/profile.d/conda.sh" ]; then
+  # shellcheck disable=SC1091
+  source "$CONDA_ROOT/etc/profile.d/conda.sh"
+else
+  echo "[ERROR] conda.sh not found at $CONDA_ROOT; aborting." >&2
+  exit 1
+fi
+
+# =============================================================================
+# SEED (one array task per seed: 0, 1, 2)
+# =============================================================================
+SEED=$SLURM_ARRAY_TASK_ID
+
+# =============================================================================
+# PATHS
+# =============================================================================
+PROJECT_HOME="$HOME/fact-ai-group-23"
+LLAMA_FACTORY_DIR="$PROJECT_HOME/LlamaFactory"
+SRC_DIR="$PROJECT_HOME/src"
+
+SCRATCH_SHARED="${SCRATCH_SHARED:-/scratch-shared/$USER}"
+[ -d "$SCRATCH_SHARED" ] || { echo "[ERROR] scratch-shared not found: $SCRATCH_SHARED" >&2; exit 1; }
+
+RUN_ROOT="$SCRATCH_SHARED/fact-ai-group-23-runs"
+# Per-seed root so concurrent array tasks never collide on adapters/merges/metrics.
+SAVES_ROOT="$RUN_ROOT/llamafactory_saves_safe_multiseed/seed_${SEED}"
+ADAPTER_ROOT="$SAVES_ROOT/adapters"
+MERGED_ROOT="$SAVES_ROOT/merged"
+CFG_ROOT="$SAVES_ROOT/merge_cfgs"
+METRICS_ROOT="$SAVES_ROOT/metrics"
+mkdir -p "$ADAPTER_ROOT" "$MERGED_ROOT" "$CFG_ROOT" "$METRICS_ROOT"
+
+LOG_DIR="$HOME/fact-ai-group-23/reproduction/LoRA-DoRA/FT-safe-datasets/logs"
+mkdir -p "$LOG_DIR"
+
+# =============================================================================
+# DATASETS (SAFE)
+# =============================================================================
+PRIVACY_DATASET="beaver_train330k_privacy_safe_1k"
+FAIRNESS_DATASET="beaver_train330k_fairness_safe_1k"
+COMBINED_DATASET="${PRIVACY_DATASET},${FAIRNESS_DATASET}"
+
+# =============================================================================
+# PRE-FLIGHT CHECKS
+# =============================================================================
+echo "========================================"
+echo "Preflight checks (seed=${SEED})"
+echo "Start time: $(date)"
+echo "Scratch root: $RUN_ROOT"
+echo "========================================"
+
+df -h "$SCRATCH_SHARED" || true
+
+conda info --envs | grep -q "LlFactory" || { echo "[ERROR] conda env LlFactory missing" >&2; exit 1; }
+conda info --envs | grep -q "FACT" || { echo "[ERROR] conda env FACT missing" >&2; exit 1; }
+
+[ -d "$LLAMA_FACTORY_DIR" ] || { echo "[ERROR] LlamaFactory dir missing: $LLAMA_FACTORY_DIR" >&2; exit 1; }
+
+DATASET_INFO="$LLAMA_FACTORY_DIR/data/dataset_info.json"
+if [ -f "$DATASET_INFO" ]; then
+  grep -q "\"$PRIVACY_DATASET\"" "$DATASET_INFO" || echo "[WARN] $PRIVACY_DATASET not found in $DATASET_INFO (verify dataset registration)."
+  grep -q "\"$FAIRNESS_DATASET\"" "$DATASET_INFO" || echo "[WARN] $FAIRNESS_DATASET not found in $DATASET_INFO (verify dataset registration)."
+else
+  echo "[WARN] dataset_info.json not found at $DATASET_INFO (dataset resolution may fail depending on your setup)."
+fi
+
+# =============================================================================
+# MODELS (Loop 2)
+# =============================================================================
+declare -A MODEL_PATH TEMPLATE MODEL_LABEL
+MODEL_PATH[qwen2_7b]="Qwen/Qwen2-7B-Instruct"
+TEMPLATE[qwen2_7b]="qwen"
+MODEL_LABEL[qwen2_7b]="qwen2-7b-instruct"
+
+MODEL_PATH[mistral_7b]="mistralai/Mistral-7B-Instruct-v0.2"
+TEMPLATE[mistral_7b]="mistral"
+MODEL_LABEL[mistral_7b]="mistral-7b-instruct-v0.2"
+
+MODELS=(qwen2_7b mistral_7b)
+
+# Pre-warm the HF cache for every model this job will touch, before any
+# array task starts training. Without this, all 3 seeds launch simultaneously
+# and race on downloading the same not-yet-cached blob, corrupting each
+# other's partial downloads (confirmed cause of Origin/SPIN Vicuna failures:
+# FileNotFoundError on .incomplete files). flock serializes concurrent
+# seeds on the same model; different models use separate lock files so they
+# don't block each other.
+for model_key in "${MODELS[@]}"; do
+  base_model="${MODEL_PATH[$model_key]}"
+  PREWARM_LOCK="/scratch-shared/${USER}/.hf_cache_lock_${model_key}"
+  (
+    flock -x 200
+    conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${base_model}')
+"
+  ) 200>"${PREWARM_LOCK}"
+done
+
+# =============================================================================
+# METHODS (Loop 1)
+# =============================================================================
+METHODS=(lora dora)
+
+# =============================================================================
+# PAPER HYPERPARAMETERS (Appendix F)
+# =============================================================================
+EPOCHS="3"
+LR="3e-4"
+BATCH_SIZE="32"
+SCHEDULER="cosine"
+WARMUP_RATIO="0.1"
+
+OPTIM="adamw_torch"
+ADAM_BETA1="0.9"
+ADAM_BETA2="0.999"
+ADAM_EPS="1e-8"
+WEIGHT_DECAY="0.0"
+
+LORA_RANK="8"
+LORA_ALPHA="16"
+
+BF16="True"
+GRAD_ACC="1"
+
+DRY_RUN="${DRY_RUN:-0}"
+
+# =============================================================================
+# FUNCTIONS
+# =============================================================================
+train_model() {
+  local method="$1"      # lora|dora
+  local model_key="$2"   # qwen2_7b|mistral_7b
+
+  local model_path="${MODEL_PATH[$model_key]}"
+  local template="${TEMPLATE[$model_key]}"
+
+  local tag="${model_key}_${method}_safe_seed${SEED}"
+  local out_dir="$ADAPTER_ROOT/$tag"
+
+  echo ""
+  echo "========== TRAIN: ${model_key} | ${method} | seed=${SEED} =========="
+  echo "Model:     $model_path"
+  echo "Template:  $template"
+  echo "Dataset:   $COMBINED_DATASET"
+  echo "Adapter:   $out_dir"
+  echo "HP: epochs=$EPOCHS lr=$LR bs=$BATCH_SIZE warmup=$WARMUP_RATIO r=$LORA_RANK alpha=$LORA_ALPHA seed=$SEED"
+  echo ""
+
+  cd "$LLAMA_FACTORY_DIR"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    mkdir -p "$out_dir"
+    echo "[DRY RUN] Skipping training; created adapter dir: $out_dir"
+    TRAIN_RESULT="$out_dir"
+    return 0
+  fi
+
+  # Skip already-finished training entirely, rather than letting LlamaFactory
+  # auto-resume from a leftover checkpoint dir. Without --overwrite_output_dir,
+  # `llamafactory.cli train --do_train True` on an output_dir that already
+  # contains a checkpoint auto-resumes training from it -- and a stale
+  # checkpoint here crashed with `AttributeError: 'NoneType' object has no
+  # attribute 'load_state_dict'` (an incompatible saved AMP-scaler state) even
+  # though the run it came from had already finished (adapter_model.safetensors
+  # already present). This check makes reruns of this job idempotent: if the
+  # final adapter is already on disk, training has nothing left to do.
+  if [ -f "$out_dir/adapter_model.safetensors" ]; then
+    echo "[SKIP] Adapter already trained: $out_dir (found adapter_model.safetensors)"
+    TRAIN_RESULT="$out_dir"
+    return 0
+  fi
+
+  echo "[DEBUG] Verifying LlFactory environment..."
+  conda run -n LlFactory bash -c "which python && python -V" || { echo "[ERROR] LlFactory environment verification failed" >&2; exit 1; }
+
+  local dora_args=()
+  if [ "$method" = "dora" ]; then
+    dora_args+=( --use_dora True )
+  fi
+
+  conda run -n LlFactory python -m llamafactory.cli train \
+    --stage sft \
+    --do_train True \
+    --model_name_or_path "$model_path" \
+    --finetuning_type lora \
+    --template "$template" \
+    --trust_remote_code True \
+    --dataset_dir data \
+    --dataset "$COMBINED_DATASET" \
+    --num_train_epochs "$EPOCHS" \
+    --learning_rate "$LR" \
+    --per_device_train_batch_size "$BATCH_SIZE" \
+    --gradient_accumulation_steps "$GRAD_ACC" \
+    --lr_scheduler_type "$SCHEDULER" \
+    --warmup_ratio "$WARMUP_RATIO" \
+    --optim "$OPTIM" \
+    --adam_beta1 "$ADAM_BETA1" \
+    --adam_beta2 "$ADAM_BETA2" \
+    --adam_epsilon "$ADAM_EPS" \
+    --weight_decay "$WEIGHT_DECAY" \
+    --lora_rank "$LORA_RANK" \
+    --lora_alpha "$LORA_ALPHA" \
+    --seed "$SEED" \
+    "${dora_args[@]}" \
+    --bf16 "$BF16" \
+    --report_to none \
+    --output_dir "$out_dir"
+
+  if [ ! -d "$out_dir" ]; then
+    echo "[ERROR] Training failed: adapter directory not created at $out_dir" >&2
+    return 1
+  fi
+
+  TRAIN_RESULT="$out_dir"
+}
+
+merge_model() {
+  local method="$1"
+  local model_key="$2"
+  local adapter_dir="$3"
+
+  local base_model="${MODEL_PATH[$model_key]}"
+  local template="${TEMPLATE[$model_key]}"
+
+  local tag
+  tag="$(basename "$adapter_dir")"
+
+  local merged_dir="$MERGED_ROOT/${tag}_merged"
+  local cfg="$CFG_ROOT/merge_${tag}.yaml"
+
+  echo ""
+  echo "========== MERGE: ${model_key} | ${method} | seed=${SEED} =========="
+  echo "Base:      $base_model"
+  echo "Adapter:   $adapter_dir"
+  echo "Merged:    $merged_dir"
+  echo ""
+
+  cd "$LLAMA_FACTORY_DIR"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    mkdir -p "$merged_dir"
+    mkdir -p "$CFG_ROOT"
+    echo "[DRY RUN] Skipping merge; created merged dir: $merged_dir and cfg placeholder."
+    MERGE_RESULT="$merged_dir"
+    return 0
+  fi
+
+  # Skip already-finished merges -- same idempotency reasoning as
+  # train_model()'s adapter_model.safetensors check. model.safetensors.index.json
+  # is only written once llamafactory.cli export finishes writing every shard.
+  if [ -f "$merged_dir/model.safetensors.index.json" ]; then
+    echo "[SKIP] Merge already done: $merged_dir (found model.safetensors.index.json)"
+    MERGE_RESULT="$merged_dir"
+    return 0
+  fi
+
+  echo "[DEBUG] Verifying LlFactory environment..."
+  conda run -n LlFactory bash -c "which python && python -V" || { echo "[ERROR] LlFactory environment verification failed" >&2; exit 1; }
+
+  cat > "$cfg" << EOF
+### model
+model_name_or_path: $base_model
+adapter_name_or_path: $adapter_dir
+template: $template
+trust_remote_code: true
+
+### export
+export_dir: $merged_dir
+export_size: 5
+export_device: cpu
+export_legacy_format: false
+EOF
+
+  conda run -n LlFactory python -m llamafactory.cli export "$cfg"
+
+  if [ ! -d "$merged_dir" ]; then
+    echo "[ERROR] Merge failed: merged directory not created at $merged_dir" >&2
+    return 1
+  fi
+
+  MERGE_RESULT="$merged_dir"
+}
+
+evaluate_model() {
+  local method="$1"
+  local model_key="$2"
+  local merged_dir="$3"
+
+  local model_label="${MODEL_LABEL[$model_key]}"
+  local base_model="${MODEL_PATH[$model_key]}"
+  local tag
+  tag="$(basename "$merged_dir")"
+  local metrics_dir="$METRICS_ROOT/$tag"
+  mkdir -p "$metrics_dir"
+
+  # Item-level (per-prompt) labels for Table 1's SPIN-vs-baseline
+  # significance test -- see
+  # reproduction/figures_and_tables/baselines-table-1/item_level_stats.py,
+  # which expects the short model keys qwen/mistral/vicuna, not this job's
+  # own qwen2_7b/mistral_7b/vicuna_7b LlamaFactory-side keys.
+  local labels_model_key
+  case "$model_key" in
+    qwen2_7b) labels_model_key="qwen" ;;
+    mistral_7b) labels_model_key="mistral" ;;
+    vicuna_7b) labels_model_key="vicuna" ;;
+    *) labels_model_key="$model_key" ;;
+  esac
+  local labels_out_dir="$HOME/fact-ai-group-23/reproduction/figures_and_tables/baselines-table-1/item_level_labels/${method}_${labels_model_key}/seed_${SEED}"
+  mkdir -p "$labels_out_dir"
+
+  echo ""
+  echo "========== EVAL: ${model_key} | ${method} | seed=${SEED} =========="
+  echo "Model label: $model_label"
+  echo "Path:        $merged_dir"
+  echo "Metrics:     $metrics_dir"
+  echo ""
+
+  cd "$SRC_DIR"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    mkdir -p "$metrics_dir"
+    echo "[DRY RUN] Skipping eval; created metrics dir: $metrics_dir"
+    return 0
+  fi
+
+  # ---- Restore original tokenizer ----
+  # LlFactory's merge/export step re-saves tokenizer.json using its newer
+  # `tokenizers` library (0.22.2), which FACT's older `tokenizers` (0.19.1,
+  # pinned for vllm compat) cannot parse ("data did not match any variant
+  # of untagged enum ModelWrapper" -- confirmed via smoke test). LoRA/DoRA
+  # never changes the tokenizer/vocab, so overwrite with the original,
+  # known-good base-model tokenizer files instead.
+  local snapshot_dir
+  snapshot_dir="$(conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+print(snapshot_download('${base_model}', allow_patterns=['tokenizer*','vocab*','merges*','special_tokens_map.json','added_tokens.json','chat_template*'], local_files_only=True))
+")"
+  cp -f "${snapshot_dir}"/tokenizer* "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/vocab* "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/merges* "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/special_tokens_map.json "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/added_tokens.json "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/chat_template* "${merged_dir}/" 2>/dev/null || true
+  echo "[INFO] Restored original tokenizer files from ${snapshot_dir} into ${merged_dir}"
+
+  echo "[DEBUG] Verifying FACT environment..."
+  conda run -n FACT bash -c "which python && python -V" || { echo "[ERROR] FACT environment verification failed" >&2; exit 1; }
+
+  conda run -n FACT python eval_origin.py \
+    --model "$model_label" \
+    --model_path "$merged_dir" \
+    --seed "$SEED" \
+    --labels_out_dir "$labels_out_dir" \
+    | tee "$metrics_dir/eval.out"
+}
+
+# =============================================================================
+# MAIN LOOP
+# =============================================================================
+echo ""
+echo "========================================"
+echo "Pipeline: Train -> Merge -> Eval (SAFE, seed=${SEED})"
+echo "Datasets: $COMBINED_DATASET"
+echo "Start time: $(date)"
+echo "Outputs:"
+echo "  Adapters: $ADAPTER_ROOT"
+echo "  Merged:   $MERGED_ROOT"
+echo "  Metrics:  $METRICS_ROOT"
+echo "========================================"
+
+TRAIN_RESULT=""
+MERGE_RESULT=""
+
+for method in "${METHODS[@]}"; do
+  for model_key in "${MODELS[@]}"; do
+    TRAIN_RESULT=""
+    train_model "$method" "$model_key"
+    adapter_dir="$TRAIN_RESULT"
+    [ -d "$adapter_dir" ] || { echo "[ERROR] adapter_dir missing: $adapter_dir" >&2; exit 1; }
+
+    MERGE_RESULT=""
+    merge_model "$method" "$model_key" "$adapter_dir"
+    merged_dir="$MERGE_RESULT"
+    [ -d "$merged_dir" ] || { echo "[ERROR] merged_dir missing: $merged_dir" >&2; exit 1; }
+
+    evaluate_model "$method" "$model_key" "$merged_dir"
+  done
+done
+
+echo ""
+echo "========================================"
+echo "All runs completed (seed=${SEED})."
+echo "End time: $(date)"
+echo "Scratch usage:"
+du -sh "$SAVES_ROOT" || true
+echo "========================================"

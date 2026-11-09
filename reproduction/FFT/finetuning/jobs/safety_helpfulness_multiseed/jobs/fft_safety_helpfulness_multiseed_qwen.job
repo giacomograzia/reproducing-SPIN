@@ -1,0 +1,165 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=FFT_Qwen_SafetyHelpful_MultiSeed
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=0-2
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/FFT/finetuning/jobs/safety_helpfulness_multiseed/outputs/FFT_Qwen_SafetyHelpful_MultiSeed_%A_%a.out
+
+# Trains Qwen2-7B-Instruct with full fine-tuning on the NEW combined
+# safety+helpfulness training set (--dataset safety,helpfulness_train,
+# registered in LlamaFactory/data/dataset_info.json), then evaluates the
+# checkpoint on BOTH held-out test sets (safety_test.csv, helpfulness_test.csv)
+# judged by BOTH judges (MD-Judge + Prometheus-2) via
+# eval_safety_helpfulness_paired.py -- same eval pattern as
+# origin_safety_helpful_multiseed_qwen.job.
+#
+# Env handling and hyperparameters are otherwise copied unmodified from the
+# proven-working
+# reproduction/FFT/finetuning/jobs/multiseed/jobs/full_fine_tuning_qwen_multiseed.job
+# -- --per_device_train_batch_size 2 / --gradient_accumulation_steps 8
+# (effective batch 16) confirmed correct per the paper spec.
+
+set -euo pipefail
+trap 'echo "[ERROR] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+# See full_fine_tuning_qwen_multiseed.job for why `conda run -n <env>` is used
+# for every invocation instead of `source activate`: switching envs twice in
+# one shell (LlFactory then FACT) corrupts PATH/PYTHONPATH and silently
+# breaks the second env.
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+source "$CONDA_ROOT/etc/profile.d/conda.sh"
+
+SEED=$SLURM_ARRAY_TASK_ID
+
+# Two real, separate bugs found on GPU, both specific to Qwen (Mistral/Vicuna
+# real runs on the identical dataset/batch/seq-length hit neither):
+#
+# 1. OOM: a first attempt (expandable_segments alone, cutoff_len still 2048)
+#    got further (7/375 steps instead of instant failure) but still OOM'd,
+#    memory climbing to 92.2/93.34 GiB before failing to allocate 1.42 GiB
+#    more. Root cause: Qwen2-7B's ~152k-token vocab (~4.75x Mistral/Vicuna's
+#    ~32k) makes the cross-entropy loss's [batch, seq_len, vocab] logits
+#    tensor proportionally larger for Qwen at the same batch/cutoff_len, and
+#    helpfulness_train.csv's much longer sequences than the old fairness/
+#    privacy dataset push this over the edge specifically for Qwen.
+#    per_device_train_batch_size stays 2 (confirmed correct, not up for
+#    change) -- --cutoff_len reduced from 2048 to 1024 instead, which directly
+#    shrinks that same tensor without touching batch size.
+#
+# 2. NaN gradients: that same attempt's log showed 'grad_norm': 'nan' by
+#    step 7 under --bf16 True -- the same Qwen-under-bf16 instability
+#    already found and fixed for LoRA/DoRA (see
+#    lora_dora_safety_helpfulness_multiseed_qwen.job), and confirmed to
+#    ALSO already be present in the "known good" fairness/privacy FFT Qwen
+#    reproduction checkpoint (directly inspected: 9/30 sampled weight
+#    tensors contain NaN) -- that checkpoint was silently corrupted the
+#    whole time. Switched --bf16 True to --fp16 True here; AMP's GradScaler
+#    detects and skips the Inf/NaN step instead of permanently poisoning
+#    Adam's moment buffers the way unscaled bf16 does.
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+SCRATCH_SHARED="/scratch-shared/${USER}"
+OUT_DIR="${SCRATCH_SHARED}/FFT/Qwen2-7B-Instruct/full_safety_helpfulness/seed${SEED}"
+EVAL_OUT_BASE="$HOME/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/fft_qwen_safety_helpfulness_multiseed/seed_${SEED}"
+mkdir -p "${OUT_DIR}" "${EVAL_OUT_BASE}"
+
+# Pre-warm the HF cache -- see full_fine_tuning_qwen_multiseed.job for why
+# (concurrent array tasks racing on the same not-yet-cached blob corrupts
+# partial downloads).
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_qwen2-7b-instruct"
+(
+  flock -x 200
+  conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('Qwen/Qwen2-7B-Instruct')
+"
+) 200>"${LOCKFILE}"
+
+# ---- Train (full fine-tune) ----
+# NOTE: `--save_safetensors True` intentionally omitted -- not a valid
+# TrainingArguments field in the installed transformers (5.6.0); llamafactory
+# rejects the whole command with "Got unknown args" if it's present.
+cd $HOME/fact-ai-group-23/LlamaFactory/
+
+conda run -n LlFactory --no-capture-output python -m llamafactory.cli train \
+  --stage sft \
+  --do_train True \
+  --model_name_or_path Qwen/Qwen2-7B-Instruct \
+  --preprocessing_num_workers 16 \
+  --finetuning_type full \
+  --template qwen \
+  --flash_attn auto \
+  --dataset_dir data \
+  --dataset safety,helpfulness_train \
+  --cutoff_len 1024 \
+  --learning_rate 5e-06 \
+  --num_train_epochs 3.0 \
+  --max_samples 100000 \
+  --per_device_train_batch_size 2 \
+  --gradient_accumulation_steps 8 \
+  --gradient_checkpointing True \
+  --lr_scheduler_type cosine \
+  --max_grad_norm 1.0 \
+  --logging_steps 5 \
+  --save_total_limit 5 \
+  --warmup_ratio 0.1 \
+  --adam_beta1 0.9 \
+  --adam_beta2 0.999 \
+  --adam_epsilon 1e-8 \
+  --weight_decay 0.0 \
+  --packing False \
+  --enable_thinking True \
+  --report_to none \
+  --output_dir "${OUT_DIR}" \
+  --fp16 True \
+  --plot_loss True \
+  --trust_remote_code True \
+  --ddp_timeout 180000000 \
+  --include_num_input_tok True \
+  --optim adamw_bnb_8bit \
+  --save_steps 1000 \
+  --seed ${SEED}
+
+# ---- Restore original tokenizer ----
+# Fine-tuning doesn't change the tokenizer/vocab, but LlFactory's training
+# step re-saves tokenizer.json using its newer `tokenizers` library (0.22.2),
+# which FACT's older `tokenizers` (0.19.1, pinned for vllm compat) cannot
+# parse ("data did not match any variant of untagged enum ModelWrapper").
+# Overwrite with the original, known-good base-model tokenizer files instead.
+SNAPSHOT_DIR="$(conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+print(snapshot_download('Qwen/Qwen2-7B-Instruct', allow_patterns=['tokenizer*','vocab*','merges*','special_tokens_map.json','added_tokens.json','chat_template*'], local_files_only=True))
+")"
+cp -f "${SNAPSHOT_DIR}"/tokenizer* "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/vocab* "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/merges* "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/special_tokens_map.json "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/added_tokens.json "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/chat_template* "${OUT_DIR}/" 2>/dev/null || true
+echo "[INFO] Restored original tokenizer files from ${SNAPSHOT_DIR} into ${OUT_DIR}"
+
+# ---- Eval: both test sets, both judges ----
+cd $HOME/fact-ai-group-23/src/
+
+for DATASET_NAME in safety_test helpfulness_test; do
+  EVAL_OUT_DIR="${EVAL_OUT_BASE}/${DATASET_NAME}"
+  mkdir -p "${EVAL_OUT_DIR}"
+
+  conda run -n FACT --no-capture-output python eval_safety_helpfulness_paired.py \
+    --model_path "${OUT_DIR}" \
+    --dataset "$HOME/fact-ai-group-23/src/data/${DATASET_NAME}.csv" \
+    --max_samples 2000 \
+    --out_dir "${EVAL_OUT_DIR}" \
+    --seed ${SEED} \
+  | tee "${EVAL_OUT_DIR}/run.log"
+
+  echo "[INFO] $(date '+%H:%M:%S') DONE seed=${SEED} dataset=${DATASET_NAME}. Results: ${EVAL_OUT_DIR}/paired_results.csv"
+done

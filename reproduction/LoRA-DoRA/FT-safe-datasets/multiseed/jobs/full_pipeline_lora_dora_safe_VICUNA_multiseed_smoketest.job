@@ -1,0 +1,229 @@
+#!/bin/bash
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=01:00:00
+#SBATCH --job-name=LoRA_DoRA_Safe_Vicuna_SmokeTest
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/LoRA-DoRA/FT-safe-datasets/multiseed/outputs/train_merge_eval_safe_vicuna_smoketest_%A.out
+#SBATCH --error=/home/aramautar1/fact-ai-group-23/reproduction/LoRA-DoRA/FT-safe-datasets/multiseed/errors/train_merge_eval_safe_vicuna_smoketest_%A.err
+
+# Smoke test for full_pipeline_lora_dora_safe_VICUNA_multiseed.job: single
+# seed (0), max_samples cut to 4, 1 epoch. Trains+merges+evals lora and dora
+# on vicuna (2 iterations total).
+
+set -euo pipefail
+
+trap 'echo "[ERROR] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+if [ -f "$CONDA_ROOT/etc/profile.d/conda.sh" ]; then
+  # shellcheck disable=SC1091
+  source "$CONDA_ROOT/etc/profile.d/conda.sh"
+else
+  echo "[ERROR] conda.sh not found at $CONDA_ROOT; aborting." >&2
+  exit 1
+fi
+
+SEED=0
+MAX_SAMPLES=4
+EPOCHS="1"
+
+PROJECT_HOME="$HOME/fact-ai-group-23"
+LLAMA_FACTORY_DIR="$PROJECT_HOME/LlamaFactory"
+SRC_DIR="$PROJECT_HOME/src"
+
+SCRATCH_SHARED="${SCRATCH_SHARED:-/scratch-shared/$USER}"
+[ -d "$SCRATCH_SHARED" ] || { echo "[ERROR] scratch-shared not found: $SCRATCH_SHARED" >&2; exit 1; }
+
+RUN_ROOT="$SCRATCH_SHARED/fact-ai-group-23-runs"
+SAVES_ROOT="$RUN_ROOT/llamafactory_saves_safe_vicuna_smoketest/seed_${SEED}"
+ADAPTER_ROOT="$SAVES_ROOT/adapters"
+MERGED_ROOT="$SAVES_ROOT/merged"
+CFG_ROOT="$SAVES_ROOT/merge_cfgs"
+METRICS_ROOT="$SAVES_ROOT/metrics"
+mkdir -p "$ADAPTER_ROOT" "$MERGED_ROOT" "$CFG_ROOT" "$METRICS_ROOT"
+
+LOG_DIR="$HOME/fact-ai-group-23/reproduction/LoRA-DoRA/FT-safe-datasets/logs"
+mkdir -p "$LOG_DIR"
+
+PRIVACY_DATASET="beaver_train330k_privacy_safe_1k"
+FAIRNESS_DATASET="beaver_train330k_fairness_safe_1k"
+COMBINED_DATASET="${PRIVACY_DATASET},${FAIRNESS_DATASET}"
+
+echo "========================================"
+echo "SMOKE TEST preflight checks (seed=${SEED})"
+echo "========================================"
+
+conda info --envs | grep -q "LlFactory" || { echo "[ERROR] conda env LlFactory missing" >&2; exit 1; }
+conda info --envs | grep -q "FACT" || { echo "[ERROR] conda env FACT missing" >&2; exit 1; }
+[ -d "$LLAMA_FACTORY_DIR" ] || { echo "[ERROR] LlamaFactory dir missing: $LLAMA_FACTORY_DIR" >&2; exit 1; }
+
+DATASET_INFO="$LLAMA_FACTORY_DIR/data/dataset_info.json"
+grep -q "\"$PRIVACY_DATASET\"" "$DATASET_INFO" || { echo "[ERROR] $PRIVACY_DATASET not registered in $DATASET_INFO" >&2; exit 1; }
+grep -q "\"$FAIRNESS_DATASET\"" "$DATASET_INFO" || { echo "[ERROR] $FAIRNESS_DATASET not registered in $DATASET_INFO" >&2; exit 1; }
+
+declare -A MODEL_PATH TEMPLATE MODEL_LABEL
+MODEL_PATH[vicuna_7b]="lmsys/vicuna-7b-v1.5"
+TEMPLATE[vicuna_7b]="vicuna"
+MODEL_LABEL[vicuna_7b]="vicuna-7b-v1.5"
+
+MODELS=(vicuna_7b)
+METHODS=(lora dora)
+
+# Pre-warm the HF cache -- see full_pipeline_lora_dora_safe_QWEN_MISTRAL_multiseed.job
+# for why (concurrent seeds racing on a not-yet-cached download).
+for model_key in "${MODELS[@]}"; do
+  base_model="${MODEL_PATH[$model_key]}"
+  PREWARM_LOCK="/scratch-shared/${USER}/.hf_cache_lock_${model_key}"
+  (
+    flock -x 200
+    conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${base_model}')
+"
+  ) 200>"${PREWARM_LOCK}"
+done
+
+LR="3e-4"
+BATCH_SIZE="4"
+SCHEDULER="constant"
+OPTIM="adamw_torch"
+LORA_RANK="8"
+LORA_ALPHA="16"
+BF16="True"
+GRAD_ACC="1"
+
+train_model() {
+  local method="$1" model_key="$2"
+  local model_path="${MODEL_PATH[$model_key]}"
+  local template="${TEMPLATE[$model_key]}"
+  local tag="${model_key}_${method}_safe_seed${SEED}_smoketest"
+  local out_dir="$ADAPTER_ROOT/$tag"
+
+  echo "========== TRAIN (smoke): ${model_key} | ${method} =========="
+  cd "$LLAMA_FACTORY_DIR"
+
+  local dora_args=()
+  if [ "$method" = "dora" ]; then
+    dora_args+=( --use_dora True )
+  fi
+
+  conda run -n LlFactory python -m llamafactory.cli train \
+    --stage sft \
+    --do_train True \
+    --model_name_or_path "$model_path" \
+    --finetuning_type lora \
+    --template "$template" \
+    --trust_remote_code True \
+    --dataset_dir data \
+    --dataset "$COMBINED_DATASET" \
+    --cutoff_len 128 \
+    --max_samples "$MAX_SAMPLES" \
+    --num_train_epochs "$EPOCHS" \
+    --learning_rate "$LR" \
+    --per_device_train_batch_size "$BATCH_SIZE" \
+    --gradient_accumulation_steps "$GRAD_ACC" \
+    --lr_scheduler_type "$SCHEDULER" \
+    --optim "$OPTIM" \
+    --lora_rank "$LORA_RANK" \
+    --lora_alpha "$LORA_ALPHA" \
+    --seed "$SEED" \
+    "${dora_args[@]}" \
+    --bf16 "$BF16" \
+    --report_to none \
+    --output_dir "$out_dir"
+
+  [ -d "$out_dir" ] || { echo "[ERROR] adapter dir not created: $out_dir" >&2; exit 1; }
+  TRAIN_RESULT="$out_dir"
+}
+
+merge_model() {
+  local method="$1" model_key="$2" adapter_dir="$3"
+  local base_model="${MODEL_PATH[$model_key]}"
+  local template="${TEMPLATE[$model_key]}"
+  local tag; tag="$(basename "$adapter_dir")"
+  local merged_dir="$MERGED_ROOT/${tag}_merged"
+  local cfg="$CFG_ROOT/merge_${tag}.yaml"
+
+  echo "========== MERGE (smoke): ${model_key} | ${method} =========="
+  cd "$LLAMA_FACTORY_DIR"
+
+  cat > "$cfg" << EOF
+### model
+model_name_or_path: $base_model
+adapter_name_or_path: $adapter_dir
+template: $template
+trust_remote_code: true
+
+### export
+export_dir: $merged_dir
+export_size: 5
+export_device: cpu
+export_legacy_format: false
+EOF
+
+  conda run -n LlFactory python -m llamafactory.cli export "$cfg"
+  [ -d "$merged_dir" ] || { echo "[ERROR] merged dir not created: $merged_dir" >&2; exit 1; }
+  MERGE_RESULT="$merged_dir"
+}
+
+evaluate_model() {
+  local method="$1" model_key="$2" merged_dir="$3"
+  local model_label="${MODEL_LABEL[$model_key]}"
+  local base_model="${MODEL_PATH[$model_key]}"
+  local tag; tag="$(basename "$merged_dir")"
+  local metrics_dir="$METRICS_ROOT/$tag"
+  mkdir -p "$metrics_dir"
+
+  echo "========== EVAL (smoke): ${model_key} | ${method} =========="
+  cd "$SRC_DIR"
+
+  # Fix tokenizer: lmsys/vicuna-7b-v1.5's HF repo ships NO tokenizer.json at
+  # all (only the legacy SentencePiece tokenizer.model), so there's no
+  # "original" tokenizer.json to restore here -- LlFactory's merge/export
+  # step auto-GENERATED one locally using its newer `tokenizers` library,
+  # which is the file FACT's older `tokenizers` can't parse (confirmed:
+  # "data did not match any variant of untagged enum ModelWrapper"). Fix:
+  # delete it so FACT rebuilds a compatible fast tokenizer from
+  # tokenizer.model at load time. Also explicitly copy tokenizer.model (+
+  # config files) from the pristine HF snapshot -- don't assume it survives
+  # in ${merged_dir} on its own (confirmed a tiny run can finish without it,
+  # crashing the slow-tokenizer fallback with "TypeError: not a string").
+  local snapshot_dir_slow
+  snapshot_dir_slow="$(conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+print(snapshot_download('${base_model}', allow_patterns=['tokenizer.model','tokenizer_config.json','special_tokens_map.json'], local_files_only=True))
+")"
+  rm -f "${merged_dir}/tokenizer.json"
+  cp -f "${snapshot_dir_slow}/tokenizer.model" "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir_slow}/tokenizer_config.json" "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir_slow}/special_tokens_map.json" "${merged_dir}/" 2>/dev/null || true
+  echo "[INFO] Removed LlFactory-generated tokenizer.json and restored tokenizer.model/config from ${snapshot_dir_slow} into ${merged_dir}"
+
+  conda run -n FACT python eval_origin.py \
+    --model "$model_label" \
+    --model_path "$merged_dir" \
+    --seed "$SEED" \
+    | tee "$metrics_dir/eval.out"
+}
+
+TRAIN_RESULT=""
+MERGE_RESULT=""
+
+for method in "${METHODS[@]}"; do
+  for model_key in "${MODELS[@]}"; do
+    TRAIN_RESULT=""
+    train_model "$method" "$model_key"
+    MERGE_RESULT=""
+    merge_model "$method" "$model_key" "$TRAIN_RESULT"
+    evaluate_model "$method" "$model_key" "$MERGE_RESULT"
+  done
+done
+
+echo "SMOKE_TEST_RESULT: PASS -- all lora/dora x vicuna train->merge->eval iterations completed."
+rm -rf "$SAVES_ROOT"

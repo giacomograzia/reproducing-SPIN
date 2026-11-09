@@ -1,0 +1,118 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=00:45:00
+#SBATCH --job-name=FFT_Vicuna_SmokeTest
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/FFT/finetuning/jobs/multiseed/outputs/fft_vicuna_smoketest_%A.out
+
+# Smoke test for full_fine_tuning_vicuna_multiseed.job: single seed (0),
+# max_samples cut to 4, 1 epoch.
+
+set -uo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+# Use `conda run -n <env>` instead of `source activate`: switching envs
+# twice in one shell (LlFactory then FACT) corrupts PATH/PYTHONPATH and
+# silently breaks the second env (confirmed: eval crashed with
+# "ModuleNotFoundError: No module named 'vllm'" under `source activate`).
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+source "$CONDA_ROOT/etc/profile.d/conda.sh"
+
+SEED=0
+
+SCRATCH_SHARED="/scratch-shared/${USER}"
+OUT_DIR="${SCRATCH_SHARED}/FFT/Vicuna-7B-v1.5/full/smoketest_seed${SEED}"
+LOGDIR="$HOME/fact-ai-group-23/reproduction/FFT/finetuning/logs"
+mkdir -p "${LOGDIR}" "${OUT_DIR}"
+
+# Pre-warm the HF cache -- see full_fine_tuning_qwen_multiseed.job for why.
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_vicuna-7b-v1.5"
+(
+  flock -x 200
+  conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('lmsys/vicuna-7b-v1.5')
+"
+) 200>"${LOCKFILE}"
+
+cd $HOME/fact-ai-group-23/LlamaFactory/
+
+conda run -n LlFactory --no-capture-output python -m llamafactory.cli train \
+  --stage sft \
+  --do_train True \
+  --model_name_or_path lmsys/vicuna-7b-v1.5 \
+  --preprocessing_num_workers 16 \
+  --finetuning_type full \
+  --template vicuna \
+  --flash_attn auto \
+  --dataset_dir data \
+  --dataset beaver_train330k_privacy_safe_1k,beaver_train330k_fairness_safe_1k \
+  --cutoff_len 128 \
+  --learning_rate 5e-06 \
+  --num_train_epochs 1 \
+  --max_samples 4 \
+  --per_device_train_batch_size 1 \
+  --gradient_accumulation_steps 1 \
+  --lr_scheduler_type constant \
+  --logging_steps 1 \
+  --save_steps 1000 \
+  --packing False \
+  --enable_thinking False \
+  --push_to_hub False \
+  --report_to none \
+  --output_dir "${OUT_DIR}" \
+  --bf16 True \
+  --trust_remote_code True \
+  --optim adamw_bnb_8bit \
+  --seed ${SEED}
+
+TRAIN_STATUS=$?
+echo "TRAIN_EXIT_CODE: ${TRAIN_STATUS}"
+
+# ---- Fix tokenizer ----
+# Unlike Qwen/Mistral, lmsys/vicuna-7b-v1.5's HF repo ships NO tokenizer.json
+# at all (only the legacy SentencePiece tokenizer.model). So there's no
+# "original" tokenizer.json to restore -- LlFactory auto-GENERATED one
+# locally using its newer `tokenizers` library, which is the file FACT's
+# older `tokenizers` can't parse. Fix: delete it so FACT rebuilds a
+# compatible fast tokenizer from tokenizer.model at load time.
+#
+# IMPORTANT: don't assume tokenizer.model survives in ${OUT_DIR} on its own
+# -- confirmed a tiny/short training run (like this smoke test) can finish
+# without tokenizer.model ever being copied there, crashing the slow-
+# tokenizer fallback with "TypeError: not a string" (SentencePiece handed a
+# None path). So explicitly copy tokenizer.model (+ its config files) from
+# the pristine HF snapshot too, rather than relying on what training left
+# behind.
+SNAPSHOT_DIR_SLOW="$(conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+print(snapshot_download('lmsys/vicuna-7b-v1.5', allow_patterns=['tokenizer.model','tokenizer_config.json','special_tokens_map.json'], local_files_only=True))
+")"
+rm -f "${OUT_DIR}/tokenizer.json"
+cp -f "${SNAPSHOT_DIR_SLOW}/tokenizer.model" "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR_SLOW}/tokenizer_config.json" "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR_SLOW}/special_tokens_map.json" "${OUT_DIR}/" 2>/dev/null || true
+echo "[INFO] Removed LlFactory-generated tokenizer.json and restored tokenizer.model/config from ${SNAPSHOT_DIR_SLOW} into ${OUT_DIR}"
+
+cd $HOME/fact-ai-group-23/src/
+
+conda run -n FACT --no-capture-output python eval_origin.py \
+  --model vicuna-7b-v1.5 \
+  --model_path "${OUT_DIR}" \
+  --seed ${SEED} \
+| tee "${LOGDIR}/fft_eval_vicuna_seed${SEED}_smoketest.log"
+EVAL_STATUS=${PIPESTATUS[0]}
+echo "EVAL_EXIT_CODE: ${EVAL_STATUS}"
+
+if [ "$TRAIN_STATUS" -eq 0 ] && [ "$EVAL_STATUS" -eq 0 ]; then
+  echo "SMOKE_TEST_RESULT: PASS"
+else
+  echo "SMOKE_TEST_RESULT: FAIL (train=${TRAIN_STATUS} eval=${EVAL_STATUS})"
+fi
+rm -rf "${OUT_DIR}"

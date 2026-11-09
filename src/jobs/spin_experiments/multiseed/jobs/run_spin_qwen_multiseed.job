@@ -1,0 +1,107 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Spin_Qwen_MultiSeed
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=2
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/spin_experiments/multiseed/outputs/Spin_Qwen_MultiSeed_%A_%a.out
+
+# One array task per seed (0-2). Uses $TMPDIR (job-private scratch-local,
+# auto-cleaned) so concurrent array tasks never collide on score/model dirs
+# — same convention as run_limdata_spin_qwen_multiseed.job.
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+SEED=$SLURM_ARRAY_TASK_ID
+SCOREDIR="${TMPDIR}/significance_score/seed_${SEED}"
+MODELDIR="${TMPDIR}/spin_models/seed_${SEED}"
+MODEL_LABEL="qwen2-7b-instruct"
+MODEL_PATH="Qwen/Qwen2-7B-Instruct"
+NSAMPLES=128
+
+LOGDIR="$HOME/fact-ai-group-23/src/multiseed_logs/spin_qwen"
+mkdir -p "${LOGDIR}"
+
+# Item-level (per-prompt) labels for Table 1's SPIN-vs-baseline significance
+# test -- see reproduction/figures_and_tables/baselines-table-1/item_level_stats.py.
+LABELS_OUT_DIR="$HOME/fact-ai-group-23/reproduction/figures_and_tables/baselines-table-1/item_level_labels/spin_qwen/seed_${SEED}"
+mkdir -p "${LABELS_OUT_DIR}"
+
+log() { echo "[$(date '+%H:%M:%S')] seed=${SEED} $*"; }
+
+# Pre-warm the HF cache before any array task tries to load the model.
+# Without this, all 3 seeds launch simultaneously and race on downloading
+# the same not-yet-cached blob, corrupting each other's partial downloads
+# (confirmed: FileNotFoundError on .incomplete files, KeyError on truncated
+# checkpoints). flock serializes the 3 tasks on this one download: whichever
+# gets the lock first downloads for real, the other two then find the cache
+# already complete and return instantly.
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_${MODEL_LABEL}"
+(
+  flock -x 200
+  python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${LOCKFILE}"
+log "Cache pre-warm complete for ${MODEL_PATH}"
+
+# 1) Compute importance scores (general + privacy + fairness)
+log "Computing Alpaca general importance scores"
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset alpaca_cleaned_no_safety \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+log "Computing privacy importance scores"
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset beaver_train330k_privacy_safe_1k \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+log "Computing fairness importance scores"
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset beaver_train330k_fairness_safe_1k \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+# 2) SPIN + run evaluation (like in main.py)
+log "Running SPIN + evaluation"
+srun python main.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset1 beaver_train330k_privacy_safe_1k \
+  --dataset2 beaver_train330k_fairness_safe_1k \
+  --target_module mlp \
+  --p 5e-7 \
+  --q 5e-7 \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR} \
+  --model_dir ${MODELDIR} \
+  --labels_out_dir "${LABELS_OUT_DIR}" \
+| tee "${LOGDIR}/spin_eval_seed${SEED}.log"
+
+log "DONE"

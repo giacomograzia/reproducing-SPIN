@@ -1,0 +1,312 @@
+#!/bin/bash
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=LoRA_DoRA_SafetyHelpful_Mistral_MultiSeed
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=0-2
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/LoRA-DoRA/FT-safety-helpfulness/multiseed/outputs/LoRA_DoRA_SafetyHelpful_Mistral_MultiSeed_%A_%a.out
+#SBATCH --error=/home/aramautar1/fact-ai-group-23/reproduction/LoRA-DoRA/FT-safety-helpfulness/multiseed/errors/LoRA_DoRA_SafetyHelpful_Mistral_MultiSeed_%A_%a.err
+
+# See lora_dora_safety_helpfulness_multiseed_qwen.job for full rationale --
+# identical structure, Mistral-7B-Instruct-v0.2 in place of Qwen. Trains on
+# --dataset safety,helpfulness_train, evaluates on BOTH safety_test.csv and
+# helpfulness_test.csv with BOTH judges. Uses bf16 (not the fp16 fix Qwen
+# needs) -- the paper-hyperparameter reproduction run never saw the Qwen-only
+# bf16 NaN issue on Mistral, so bf16 is unmodified here, matching
+# reproduction/LoRA-DoRA/FT-safe-datasets/multiseed/jobs/full_pipeline_lora_dora_safe_QWEN_MISTRAL_multiseed.job's
+# Mistral hyperparameters.
+
+set -euo pipefail
+trap 'echo "[ERROR] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+if [ -f "$CONDA_ROOT/etc/profile.d/conda.sh" ]; then
+  # shellcheck disable=SC1091
+  source "$CONDA_ROOT/etc/profile.d/conda.sh"
+else
+  echo "[ERROR] conda.sh not found at $CONDA_ROOT; aborting." >&2
+  exit 1
+fi
+
+SEED=$SLURM_ARRAY_TASK_ID
+
+PROJECT_HOME="$HOME/fact-ai-group-23"
+LLAMA_FACTORY_DIR="$PROJECT_HOME/LlamaFactory"
+SRC_DIR="$PROJECT_HOME/src"
+
+SCRATCH_SHARED="${SCRATCH_SHARED:-/scratch-shared/$USER}"
+[ -d "$SCRATCH_SHARED" ] || { echo "[ERROR] scratch-shared not found: $SCRATCH_SHARED" >&2; exit 1; }
+
+RUN_ROOT="$SCRATCH_SHARED/fact-ai-group-23-runs"
+SAVES_ROOT="$RUN_ROOT/llamafactory_saves_safety_helpfulness_multiseed/seed_${SEED}"
+ADAPTER_ROOT="$SAVES_ROOT/adapters"
+MERGED_ROOT="$SAVES_ROOT/merged"
+CFG_ROOT="$SAVES_ROOT/merge_cfgs"
+mkdir -p "$ADAPTER_ROOT" "$MERGED_ROOT" "$CFG_ROOT"
+
+EVAL_OUT_ROOT="$PROJECT_HOME/src/jobs/safety_helpfulness_paired/outputs/lora_dora_mistral_safety_helpfulness_multiseed/seed_${SEED}"
+mkdir -p "$EVAL_OUT_ROOT"
+
+COMBINED_DATASET="safety,helpfulness_train"
+
+echo "========================================"
+echo "Preflight checks (seed=${SEED})"
+echo "Start time: $(date)"
+echo "Scratch root: $RUN_ROOT"
+echo "========================================"
+
+df -h "$SCRATCH_SHARED" || true
+
+conda info --envs | grep -q "LlFactory" || { echo "[ERROR] conda env LlFactory missing" >&2; exit 1; }
+conda info --envs | grep -q "FACT" || { echo "[ERROR] conda env FACT missing" >&2; exit 1; }
+
+[ -d "$LLAMA_FACTORY_DIR" ] || { echo "[ERROR] LlamaFactory dir missing: $LLAMA_FACTORY_DIR" >&2; exit 1; }
+
+DATASET_INFO="$LLAMA_FACTORY_DIR/data/dataset_info.json"
+if [ -f "$DATASET_INFO" ]; then
+  grep -q "\"safety\"" "$DATASET_INFO" || echo "[WARN] 'safety' not found in $DATASET_INFO (verify dataset registration)."
+  grep -q "\"helpfulness_train\"" "$DATASET_INFO" || echo "[WARN] 'helpfulness_train' not found in $DATASET_INFO (verify dataset registration)."
+else
+  echo "[WARN] dataset_info.json not found at $DATASET_INFO (dataset resolution may fail depending on your setup)."
+fi
+
+MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+TEMPLATE="mistral"
+MODEL_LABEL="mistral-7b-instruct-v0.2"
+
+PREWARM_LOCK="/scratch-shared/${USER}/.hf_cache_lock_mistral_7b"
+(
+  flock -x 200
+  conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${PREWARM_LOCK}"
+
+METHODS=(lora dora)
+
+EPOCHS="3"
+LR="3e-4"
+BATCH_SIZE="32"
+SCHEDULER="cosine"
+WARMUP_RATIO="0.1"
+
+OPTIM="adamw_torch"
+ADAM_BETA1="0.9"
+ADAM_BETA2="0.999"
+ADAM_EPS="1e-8"
+WEIGHT_DECAY="0.0"
+
+LORA_RANK="8"
+LORA_ALPHA="16"
+
+BF16="True"
+GRAD_ACC="1"
+
+DRY_RUN="${DRY_RUN:-0}"
+
+train_model() {
+  local method="$1"      # lora|dora
+
+  local tag="mistral_7b_${method}_safety_helpfulness_seed${SEED}"
+  local out_dir="$ADAPTER_ROOT/$tag"
+
+  echo ""
+  echo "========== TRAIN: mistral_7b | ${method} | seed=${SEED} =========="
+  echo "Model:     $MODEL_PATH"
+  echo "Template:  $TEMPLATE"
+  echo "Dataset:   $COMBINED_DATASET"
+  echo "Adapter:   $out_dir"
+  echo "HP: epochs=$EPOCHS lr=$LR bs=$BATCH_SIZE warmup=$WARMUP_RATIO r=$LORA_RANK alpha=$LORA_ALPHA seed=$SEED"
+  echo ""
+
+  cd "$LLAMA_FACTORY_DIR"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    mkdir -p "$out_dir"
+    echo "[DRY RUN] Skipping training; created adapter dir: $out_dir"
+    TRAIN_RESULT="$out_dir"
+    return 0
+  fi
+
+  conda run -n LlFactory bash -c "which python && python -V" || { echo "[ERROR] LlFactory environment verification failed" >&2; exit 1; }
+
+  local dora_args=()
+  if [ "$method" = "dora" ]; then
+    dora_args+=( --use_dora True )
+  fi
+
+  conda run -n LlFactory python -m llamafactory.cli train \
+    --stage sft \
+    --do_train True \
+    --model_name_or_path "$MODEL_PATH" \
+    --finetuning_type lora \
+    --template "$TEMPLATE" \
+    --trust_remote_code True \
+    --dataset_dir data \
+    --dataset "$COMBINED_DATASET" \
+    --num_train_epochs "$EPOCHS" \
+    --learning_rate "$LR" \
+    --per_device_train_batch_size "$BATCH_SIZE" \
+    --gradient_accumulation_steps "$GRAD_ACC" \
+    --lr_scheduler_type "$SCHEDULER" \
+    --warmup_ratio "$WARMUP_RATIO" \
+    --optim "$OPTIM" \
+    --adam_beta1 "$ADAM_BETA1" \
+    --adam_beta2 "$ADAM_BETA2" \
+    --adam_epsilon "$ADAM_EPS" \
+    --weight_decay "$WEIGHT_DECAY" \
+    --lora_rank "$LORA_RANK" \
+    --lora_alpha "$LORA_ALPHA" \
+    --seed "$SEED" \
+    "${dora_args[@]}" \
+    --bf16 "$BF16" \
+    --report_to none \
+    --output_dir "$out_dir"
+
+  if [ ! -d "$out_dir" ]; then
+    echo "[ERROR] Training failed: adapter directory not created at $out_dir" >&2
+    return 1
+  fi
+
+  TRAIN_RESULT="$out_dir"
+}
+
+merge_model() {
+  local method="$1"
+  local adapter_dir="$2"
+
+  local tag
+  tag="$(basename "$adapter_dir")"
+
+  local merged_dir="$MERGED_ROOT/${tag}_merged"
+  local cfg="$CFG_ROOT/merge_${tag}.yaml"
+
+  echo ""
+  echo "========== MERGE: mistral_7b | ${method} | seed=${SEED} =========="
+  echo "Base:      $MODEL_PATH"
+  echo "Adapter:   $adapter_dir"
+  echo "Merged:    $merged_dir"
+  echo ""
+
+  cd "$LLAMA_FACTORY_DIR"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    mkdir -p "$merged_dir"
+    mkdir -p "$CFG_ROOT"
+    echo "[DRY RUN] Skipping merge; created merged dir: $merged_dir and cfg placeholder."
+    MERGE_RESULT="$merged_dir"
+    return 0
+  fi
+
+  conda run -n LlFactory bash -c "which python && python -V" || { echo "[ERROR] LlFactory environment verification failed" >&2; exit 1; }
+
+  cat > "$cfg" << EOF
+### model
+model_name_or_path: $MODEL_PATH
+adapter_name_or_path: $adapter_dir
+template: $TEMPLATE
+trust_remote_code: true
+
+### export
+export_dir: $merged_dir
+export_size: 5
+export_device: cpu
+export_legacy_format: false
+EOF
+
+  conda run -n LlFactory python -m llamafactory.cli export "$cfg"
+
+  if [ ! -d "$merged_dir" ]; then
+    echo "[ERROR] Merge failed: merged directory not created at $merged_dir" >&2
+    return 1
+  fi
+
+  MERGE_RESULT="$merged_dir"
+}
+
+evaluate_model() {
+  local method="$1"
+  local merged_dir="$2"
+
+  local tag
+  tag="$(basename "$merged_dir")"
+
+  echo ""
+  echo "========== EVAL: mistral_7b | ${method} | seed=${SEED} =========="
+  echo "Model label: $MODEL_LABEL"
+  echo "Path:        $merged_dir"
+  echo ""
+
+  cd "$SRC_DIR"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    echo "[DRY RUN] Skipping eval."
+    return 0
+  fi
+
+  local snapshot_dir
+  snapshot_dir="$(conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+print(snapshot_download('${MODEL_PATH}', allow_patterns=['tokenizer*','vocab*','merges*','special_tokens_map.json','added_tokens.json','chat_template*'], local_files_only=True))
+")"
+  cp -f "${snapshot_dir}"/tokenizer* "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/vocab* "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/merges* "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/special_tokens_map.json "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/added_tokens.json "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/chat_template* "${merged_dir}/" 2>/dev/null || true
+  echo "[INFO] Restored original tokenizer files from ${snapshot_dir} into ${merged_dir}"
+
+  conda run -n FACT bash -c "which python && python -V" || { echo "[ERROR] FACT environment verification failed" >&2; exit 1; }
+
+  for DATASET_NAME in safety_test helpfulness_test; do
+    local eval_out_dir="${EVAL_OUT_ROOT}/${tag}/${DATASET_NAME}"
+    mkdir -p "${eval_out_dir}"
+
+    conda run -n FACT python eval_safety_helpfulness_paired.py \
+      --model_path "$merged_dir" \
+      --dataset "$SRC_DIR/data/${DATASET_NAME}.csv" \
+      --max_samples 2000 \
+      --out_dir "${eval_out_dir}" \
+      --seed "$SEED" \
+    | tee "${eval_out_dir}/run.log"
+
+    echo "[INFO] $(date '+%H:%M:%S') DONE method=${method} seed=${SEED} dataset=${DATASET_NAME}. Results: ${eval_out_dir}/paired_results.csv"
+  done
+}
+
+echo ""
+echo "========================================"
+echo "Pipeline: Train -> Merge -> Eval (SAFETY+HELPFULNESS, Mistral, seed=${SEED})"
+echo "Dataset: $COMBINED_DATASET"
+echo "Start time: $(date)"
+echo "========================================"
+
+for method in "${METHODS[@]}"; do
+  TRAIN_RESULT=""
+  train_model "$method"
+  adapter_dir="$TRAIN_RESULT"
+  [ -d "$adapter_dir" ] || { echo "[ERROR] adapter_dir missing: $adapter_dir" >&2; exit 1; }
+
+  MERGE_RESULT=""
+  merge_model "$method" "$adapter_dir"
+  merged_dir="$MERGE_RESULT"
+  [ -d "$merged_dir" ] || { echo "[ERROR] merged_dir missing: $merged_dir" >&2; exit 1; }
+
+  evaluate_model "$method" "$merged_dir"
+done
+
+echo ""
+echo "========================================"
+echo "All runs completed (seed=${SEED})."
+echo "End time: $(date)"
+echo "Scratch usage:"
+du -sh "$SAVES_ROOT" || true
+echo "========================================"

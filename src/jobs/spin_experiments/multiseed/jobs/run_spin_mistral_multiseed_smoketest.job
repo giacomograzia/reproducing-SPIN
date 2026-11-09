@@ -1,0 +1,91 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Spin_Mistral_SmokeTest
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=00:45:00
+#SBATCH --output=Spin_Mistral_SmokeTest_%A.out
+
+# Smoke test for run_spin_mistral_multiseed.job: single seed (0), NSAMPLES cut to 4.
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+SEED=0
+SCOREDIR="${TMPDIR}/significance_score_smoketest/seed_${SEED}"
+MODELDIR="${TMPDIR}/spin_models_smoketest/seed_${SEED}"
+MODEL_LABEL="mistral-7b-instruct-v0.2"
+MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+NSAMPLES=4
+
+LOGDIR="$HOME/fact-ai-group-23/src/multiseed_logs/spin_mistral"
+mkdir -p "${LOGDIR}"
+
+log() { echo "[$(date '+%H:%M:%S')] SMOKETEST seed=${SEED} $*"; }
+
+# Pre-warm the HF cache -- see run_spin_qwen_multiseed.job for why.
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_${MODEL_LABEL}"
+(
+  flock -x 200
+  python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${LOCKFILE}"
+log "Cache pre-warm complete for ${MODEL_PATH}"
+
+log "Computing Alpaca general importance scores (nsamples=${NSAMPLES})"
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset alpaca_cleaned_no_safety \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+log "Computing privacy importance scores"
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset beaver_train330k_privacy_safe_1k \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+log "Computing fairness importance scores"
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset beaver_train330k_fairness_safe_1k \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+log "Running SPIN + evaluation"
+srun python main.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset1 beaver_train330k_privacy_safe_1k \
+  --dataset2 beaver_train330k_fairness_safe_1k \
+  --target_module mlp \
+  --p 5e-7 \
+  --q 5e-7 \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR} \
+  --model_dir ${MODELDIR} \
+| tee "${LOGDIR}/spin_eval_seed${SEED}_smoketest.log"
+
+rm -rf "${MODELDIR}"
+log "SMOKE TEST DONE"

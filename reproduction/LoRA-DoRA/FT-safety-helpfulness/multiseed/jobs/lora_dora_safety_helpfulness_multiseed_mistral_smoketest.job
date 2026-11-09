@@ -1,0 +1,153 @@
+#!/bin/bash
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=LoRA_DoRA_SafetyHelpful_Mistral_SmokeTest
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=00:45:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/LoRA-DoRA/FT-safety-helpfulness/multiseed/outputs/lora_dora_mistral_safety_helpfulness_smoketest_%A.out
+#SBATCH --error=/home/aramautar1/fact-ai-group-23/reproduction/LoRA-DoRA/FT-safety-helpfulness/multiseed/errors/lora_dora_mistral_safety_helpfulness_smoketest_%A.err
+
+# See lora_dora_safety_helpfulness_multiseed_qwen_smoketest.job for full
+# rationale -- identical structure, Mistral-7B-Instruct-v0.2 in place of
+# Qwen, bf16 instead of the Qwen-only fp16 fix (Mistral never hit the bf16
+# NaN issue).
+
+set -uo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+source "$CONDA_ROOT/etc/profile.d/conda.sh"
+
+SEED=0
+
+PROJECT_HOME="$HOME/fact-ai-group-23"
+LLAMA_FACTORY_DIR="$PROJECT_HOME/LlamaFactory"
+SRC_DIR="$PROJECT_HOME/src"
+
+SCRATCH_SHARED="${SCRATCH_SHARED:-/scratch-shared/$USER}"
+RUN_ROOT="$SCRATCH_SHARED/fact-ai-group-23-runs"
+SAVES_ROOT="$RUN_ROOT/llamafactory_saves_safety_helpfulness_smoketest/seed_${SEED}"
+ADAPTER_ROOT="$SAVES_ROOT/adapters"
+MERGED_ROOT="$SAVES_ROOT/merged"
+CFG_ROOT="$SAVES_ROOT/merge_cfgs"
+mkdir -p "$ADAPTER_ROOT" "$MERGED_ROOT" "$CFG_ROOT"
+
+EVAL_OUT_ROOT="$PROJECT_HOME/src/jobs/safety_helpfulness_paired/outputs/lora_dora_mistral_safety_helpfulness_smoketest/seed_${SEED}"
+mkdir -p "$EVAL_OUT_ROOT"
+
+COMBINED_DATASET="safety,helpfulness_train"
+
+conda info --envs | grep -q "LlFactory" || { echo "[ERROR] conda env LlFactory missing" >&2; exit 1; }
+conda info --envs | grep -q "FACT" || { echo "[ERROR] conda env FACT missing" >&2; exit 1; }
+
+MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+TEMPLATE="mistral"
+
+PREWARM_LOCK="/scratch-shared/${USER}/.hf_cache_lock_mistral_7b"
+(
+  flock -x 200
+  conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${PREWARM_LOCK}"
+
+METHODS=(lora dora)
+OVERALL_STATUS=0
+
+for method in "${METHODS[@]}"; do
+  tag="mistral_7b_${method}_safety_helpfulness_smoketest_seed${SEED}"
+  adapter_dir="$ADAPTER_ROOT/$tag"
+
+  echo "========== TRAIN: mistral_7b | ${method} (smoketest) =========="
+  cd "$LLAMA_FACTORY_DIR"
+
+  dora_args=()
+  [ "$method" = "dora" ] && dora_args+=( --use_dora True )
+
+  conda run -n LlFactory python -m llamafactory.cli train \
+    --stage sft \
+    --do_train True \
+    --model_name_or_path "$MODEL_PATH" \
+    --finetuning_type lora \
+    --template "$TEMPLATE" \
+    --trust_remote_code True \
+    --dataset_dir data \
+    --dataset "$COMBINED_DATASET" \
+    --max_samples 8 \
+    --num_train_epochs 1 \
+    --learning_rate 3e-4 \
+    --per_device_train_batch_size 1 \
+    --gradient_accumulation_steps 1 \
+    --lora_rank 8 \
+    --lora_alpha 16 \
+    --seed "$SEED" \
+    "${dora_args[@]}" \
+    --bf16 True \
+    --report_to none \
+    --output_dir "$adapter_dir"
+  train_status=$?
+  echo "TRAIN_EXIT_CODE[${method}]: ${train_status}"
+  [ "$train_status" -eq 0 ] || { OVERALL_STATUS=1; continue; }
+
+  echo "========== MERGE: mistral_7b | ${method} (smoketest) =========="
+  merged_dir="$MERGED_ROOT/${tag}_merged"
+  cfg="$CFG_ROOT/merge_${tag}.yaml"
+  cat > "$cfg" << EOF
+### model
+model_name_or_path: $MODEL_PATH
+adapter_name_or_path: $adapter_dir
+template: $TEMPLATE
+trust_remote_code: true
+
+### export
+export_dir: $merged_dir
+export_size: 5
+export_device: cpu
+export_legacy_format: false
+EOF
+  conda run -n LlFactory python -m llamafactory.cli export "$cfg"
+  merge_status=$?
+  echo "MERGE_EXIT_CODE[${method}]: ${merge_status}"
+  [ "$merge_status" -eq 0 ] && [ -d "$merged_dir" ] || { OVERALL_STATUS=1; continue; }
+
+  echo "========== TOKENIZER FIX + EVAL: mistral_7b | ${method} (smoketest) =========="
+  snapshot_dir="$(conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+print(snapshot_download('${MODEL_PATH}', allow_patterns=['tokenizer*','vocab*','merges*','special_tokens_map.json','added_tokens.json','chat_template*'], local_files_only=True))
+")"
+  cp -f "${snapshot_dir}"/tokenizer* "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/vocab* "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/merges* "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/special_tokens_map.json "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/added_tokens.json "${merged_dir}/" 2>/dev/null || true
+  cp -f "${snapshot_dir}"/chat_template* "${merged_dir}/" 2>/dev/null || true
+
+  cd "$SRC_DIR"
+  for DATASET_NAME in safety_test helpfulness_test; do
+    eval_out_dir="${EVAL_OUT_ROOT}/${tag}/${DATASET_NAME}"
+    mkdir -p "${eval_out_dir}"
+    conda run -n FACT python eval_safety_helpfulness_paired.py \
+      --model_path "$merged_dir" \
+      --dataset "$SRC_DIR/data/${DATASET_NAME}.csv" \
+      --max_samples 8 \
+      --out_dir "${eval_out_dir}" \
+      --seed "$SEED" \
+    | tee "${eval_out_dir}/run.log"
+    eval_status=${PIPESTATUS[0]}
+    [ "$eval_status" -eq 0 ] || OVERALL_STATUS=1
+    echo "EVAL_EXIT_CODE[${method}][${DATASET_NAME}]: ${eval_status}"
+  done
+  cd "$LLAMA_FACTORY_DIR"
+done
+
+if [ "$OVERALL_STATUS" -eq 0 ]; then
+  echo "SMOKE_TEST_RESULT: PASS"
+else
+  echo "SMOKE_TEST_RESULT: FAIL"
+fi
+rm -rf "${SAVES_ROOT}"

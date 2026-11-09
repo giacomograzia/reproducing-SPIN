@@ -1,0 +1,122 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=FFT_Vicuna_SafetyHelpful_MultiSeed
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=0-2
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/FFT/finetuning/jobs/safety_helpfulness_multiseed/outputs/FFT_Vicuna_SafetyHelpful_MultiSeed_%A_%a.out
+
+# See fft_safety_helpfulness_multiseed_qwen.job for full rationale --
+# identical structure, lmsys/vicuna-7b-v1.5 in place of Qwen. Trains on
+# --dataset safety,helpfulness_train, evaluates on BOTH safety_test.csv and
+# helpfulness_test.csv with BOTH judges (MD-Judge + Prometheus-2).
+# Hyperparameters copied unmodified from
+# reproduction/FFT/finetuning/jobs/multiseed/jobs/full_fine_tuning_vicuna_multiseed.job.
+
+set -euo pipefail
+trap 'echo "[ERROR] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+source "$CONDA_ROOT/etc/profile.d/conda.sh"
+
+SEED=$SLURM_ARRAY_TASK_ID
+
+SCRATCH_SHARED="/scratch-shared/${USER}"
+OUT_DIR="${SCRATCH_SHARED}/FFT/Vicuna-7B-v1.5/full_safety_helpfulness/seed${SEED}"
+EVAL_OUT_BASE="$HOME/fact-ai-group-23/src/jobs/safety_helpfulness_paired/outputs/fft_vicuna_safety_helpfulness_multiseed/seed_${SEED}"
+mkdir -p "${OUT_DIR}" "${EVAL_OUT_BASE}"
+
+# Pre-warm the HF cache -- Vicuna is the model that actually hit the
+# concurrent-download-race issue in Origin/SPIN's real runs.
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_vicuna-7b-v1.5"
+(
+  flock -x 200
+  conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('lmsys/vicuna-7b-v1.5')
+"
+) 200>"${LOCKFILE}"
+
+# ---- Train (full fine-tune) ----
+cd $HOME/fact-ai-group-23/LlamaFactory/
+
+conda run -n LlFactory --no-capture-output python -m llamafactory.cli train \
+  --stage sft \
+  --do_train True \
+  --model_name_or_path lmsys/vicuna-7b-v1.5 \
+  --preprocessing_num_workers 16 \
+  --finetuning_type full \
+  --template vicuna \
+  --flash_attn auto \
+  --dataset_dir data \
+  --dataset safety,helpfulness_train \
+  --cutoff_len 2048 \
+  --learning_rate 5e-06 \
+  --num_train_epochs 3.0 \
+  --max_samples 100000 \
+  --per_device_train_batch_size 2 \
+  --gradient_accumulation_steps 8 \
+  --lr_scheduler_type cosine \
+  --max_grad_norm 1.0 \
+  --logging_steps 5 \
+  --warmup_ratio 0.1 \
+  --adam_beta1 0.9 \
+  --adam_beta2 0.999 \
+  --adam_epsilon 1e-8 \
+  --weight_decay 0.0 \
+  --packing False \
+  --enable_thinking True \
+  --push_to_hub False \
+  --report_to none \
+  --output_dir "${OUT_DIR}" \
+  --bf16 True \
+  --plot_loss True \
+  --trust_remote_code True \
+  --ddp_timeout 180000000 \
+  --include_num_input_tok True \
+  --optim adamw_bnb_8bit \
+  --save_steps 1000 \
+  --seed ${SEED}
+
+# ---- Fix tokenizer ----
+# lmsys/vicuna-7b-v1.5 ships NO tokenizer.json (only legacy SentencePiece
+# tokenizer.model), so there's no "original" tokenizer.json to restore --
+# LlFactory auto-generates one locally that FACT's older `tokenizers` can't
+# parse. Delete it so FACT rebuilds a compatible fast tokenizer from
+# tokenizer.model, and explicitly copy tokenizer.model + its config files
+# too (a tiny/short run isn't guaranteed to leave tokenizer.model behind on
+# its own).
+SNAPSHOT_DIR_SLOW="$(conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+print(snapshot_download('lmsys/vicuna-7b-v1.5', allow_patterns=['tokenizer.model','tokenizer_config.json','special_tokens_map.json'], local_files_only=True))
+")"
+rm -f "${OUT_DIR}/tokenizer.json"
+cp -f "${SNAPSHOT_DIR_SLOW}/tokenizer.model" "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR_SLOW}/tokenizer_config.json" "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR_SLOW}/special_tokens_map.json" "${OUT_DIR}/" 2>/dev/null || true
+echo "[INFO] Removed LlFactory-generated tokenizer.json and restored tokenizer.model/config from ${SNAPSHOT_DIR_SLOW} into ${OUT_DIR}"
+
+# ---- Eval: both test sets, both judges ----
+cd $HOME/fact-ai-group-23/src/
+
+for DATASET_NAME in safety_test helpfulness_test; do
+  EVAL_OUT_DIR="${EVAL_OUT_BASE}/${DATASET_NAME}"
+  mkdir -p "${EVAL_OUT_DIR}"
+
+  conda run -n FACT --no-capture-output python eval_safety_helpfulness_paired.py \
+    --model_path "${OUT_DIR}" \
+    --dataset "$HOME/fact-ai-group-23/src/data/${DATASET_NAME}.csv" \
+    --max_samples 2000 \
+    --out_dir "${EVAL_OUT_DIR}" \
+    --seed ${SEED} \
+  | tee "${EVAL_OUT_DIR}/run.log"
+
+  echo "[INFO] $(date '+%H:%M:%S') DONE seed=${SEED} dataset=${DATASET_NAME}. Results: ${EVAL_OUT_DIR}/paired_results.csv"
+done

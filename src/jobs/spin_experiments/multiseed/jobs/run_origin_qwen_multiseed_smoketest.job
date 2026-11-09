@@ -1,0 +1,47 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Origin_Qwen_SmokeTest
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=00:30:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/spin_experiments/multiseed/outputs/Origin_Qwen_SmokeTest_%A.out
+
+# Smoke test for run_origin_qwen_multiseed.job: single seed (0), not an
+# array. Origin has no --nsamples knob (eval_origin.py's is commented out),
+# so this is the real eval at 1x cost instead of 3x -- confirms env/model
+# load + MD-Judge eval work before submitting the full seed 0-2 array.
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+SEED=0
+MODEL_LABEL="qwen2-7b-instruct"
+MODEL_PATH="Qwen/Qwen2-7B-Instruct"
+
+LOGDIR="$HOME/fact-ai-group-23/src/multiseed_logs/origin_qwen"
+mkdir -p "${LOGDIR}"
+
+# Pre-warm the HF cache -- see run_origin_qwen_multiseed.job for why.
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_${MODEL_LABEL}"
+(
+  flock -x 200
+  python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${LOCKFILE}"
+
+srun python eval_origin.py \
+  --model ${MODEL_LABEL} \
+  --model_path ${MODEL_PATH} \
+  --seed ${SEED} \
+| tee "${LOGDIR}/origin_eval_seed${SEED}_smoketest.log"

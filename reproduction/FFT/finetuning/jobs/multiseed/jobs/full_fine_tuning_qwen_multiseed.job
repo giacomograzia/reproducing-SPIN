@@ -1,0 +1,159 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=FFT_Qwen_MultiSeed
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --array=0-2
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/FFT/finetuning/jobs/multiseed/outputs/fft_qwen_multiseed_%A_%a.out
+
+set -euo pipefail
+trap 'echo "[ERROR] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+# Use `conda run -n <env>` for every python invocation instead of switching
+# the active env mid-script with `source activate` -- switching envs twice
+# in one shell (LlFactory then FACT) corrupts PATH/PYTHONPATH resolution
+# and silently breaks the second env (confirmed: eval crashed with
+# "ModuleNotFoundError: No module named 'vllm'" when this was `source
+# activate FACT` after `source activate LlFactory`). `conda run` launches
+# each command in a clean subprocess for its named env, avoiding this.
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+source "$CONDA_ROOT/etc/profile.d/conda.sh"
+
+SEED=$SLURM_ARRAY_TASK_ID
+
+SCRATCH_SHARED="/scratch-shared/${USER}"
+OUT_DIR="${SCRATCH_SHARED}/FFT/Qwen2-7B-Instruct/full/seed${SEED}"
+LOGDIR="$HOME/fact-ai-group-23/reproduction/FFT/finetuning/logs"
+mkdir -p "${LOGDIR}" "${OUT_DIR}"
+
+# Item-level (per-prompt) labels for Table 1's SPIN-vs-baseline significance
+# test -- see reproduction/figures_and_tables/baselines-table-1/item_level_stats.py.
+LABELS_OUT_DIR="$HOME/fact-ai-group-23/reproduction/figures_and_tables/baselines-table-1/item_level_labels/fft_qwen/seed_${SEED}"
+mkdir -p "${LABELS_OUT_DIR}"
+
+# Pre-warm the HF cache before training tries to load the model. Without
+# this, all 3 array tasks launch simultaneously and race on downloading
+# the same not-yet-cached blob, corrupting each other's partial downloads
+# (confirmed for Origin/SPIN Vicuna: FileNotFoundError on .incomplete
+# files). Qwen/Mistral/Vicuna FFT haven't hit this yet only because the
+# model happened to already be cached from an earlier smoke test before
+# each real array launched -- not because FFT is immune to it.
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_qwen2-7b-instruct"
+(
+  flock -x 200
+  conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('Qwen/Qwen2-7B-Instruct')
+"
+) 200>"${LOCKFILE}"
+
+# ---- Train (full fine-tune) ----
+# NOTE: `--save_safetensors True` was removed -- it's no longer a valid
+# TrainingArguments field in the installed transformers (5.6.0), and
+# llamafactory rejects the whole command with "Got unknown args" before
+# ever loading the model (confirmed: real run failed in ~25s).
+#
+# --flash_attn disabled (eager attention), not auto: with auto, llamafactory
+# picks torch SDPA, and Qwen2 + SDPA + bf16 produces NaN gradients within the
+# first 5-20 steps on every seed (diag_qwen_fft_nan.job, job 29046747: SDPA
+# went NaN at step 8/11 on seeds 0/2; eager stayed finite on both; fp16 + SDPA
+# hit the same NaN and only survived because the loss scaler skipped the step).
+# Mistral/Vicuna are unaffected and keep auto.
+#
+# Resumable: --save_steps 250 leaves a checkpoint every third of the run, and
+# llamafactory resumes from the newest checkpoint-* in OUT_DIR automatically.
+# A finished run (train_results.json present) skips training entirely, so a
+# requeue only redoes the eval.
+cd $HOME/fact-ai-group-23/LlamaFactory/
+
+if [ -f "${OUT_DIR}/train_results.json" ]; then
+  echo "[INFO] ${OUT_DIR} already trained; skipping training"
+else
+conda run -n LlFactory --no-capture-output python -m llamafactory.cli train \
+  --stage sft \
+  --do_train True \
+  --model_name_or_path Qwen/Qwen2-7B-Instruct \
+  --preprocessing_num_workers 16 \
+  --finetuning_type full \
+  --template qwen \
+  --flash_attn disabled \
+  --dataset_dir data \
+  --dataset beaver_train330k_privacy_safe_1k,beaver_train330k_fairness_safe_1k \
+  --cutoff_len 2048 \
+  --learning_rate 5e-06 \
+  --num_train_epochs 3.0 \
+  --max_samples 100000 \
+  --per_device_train_batch_size 2 \
+  --gradient_accumulation_steps 8 \
+  --gradient_checkpointing True \
+  --lr_scheduler_type cosine \
+  --max_grad_norm 1.0 \
+  --logging_steps 5 \
+  --save_total_limit 1 \
+  --warmup_ratio 0.1 \
+  --adam_beta1 0.9 \
+  --adam_beta2 0.999 \
+  --adam_epsilon 1e-8 \
+  --weight_decay 0.0 \
+  --packing False \
+  --enable_thinking True \
+  --report_to none \
+  --output_dir "${OUT_DIR}" \
+  --bf16 True \
+  --plot_loss True \
+  --trust_remote_code True \
+  --ddp_timeout 180000000 \
+  --include_num_input_tok True \
+  --optim adamw_bnb_8bit \
+  --save_steps 250 \
+  --seed ${SEED}
+fi
+
+# ---- Divergence guard ----
+# The first multiseed run (Aug 2026) went to loss=NaN within 20 steps on all
+# 3 seeds; llamafactory logs NaN loss as 0 and still saves the model, which
+# then outputs only "!!!!" yet gets a plausible MD-Judge score. Refuse to eval
+# a run whose log has any zero or NaN loss.
+conda run -n LlFactory python -c "
+import json, math, sys
+log = [json.loads(l) for l in open('${OUT_DIR}/trainer_log.jsonl')]
+bad = [x['current_steps'] for x in log if 'loss' in x and (x['loss'] == 0 or math.isnan(x['loss']))]
+if bad:
+    sys.exit(f'[ERROR] training diverged: zero/NaN loss at steps {bad[:10]}')
+print(f'[INFO] divergence guard passed ({sum(\"loss\" in x for x in log)} logged steps)')
+"
+
+# ---- Restore original tokenizer ----
+# Fine-tuning doesn't change the tokenizer/vocab, but LlFactory's training
+# step re-saves tokenizer.json using its newer `tokenizers` library (0.22.2),
+# which FACT's older `tokenizers` (0.19.1, pinned for vllm compat) cannot
+# parse ("data did not match any variant of untagged enum ModelWrapper").
+# Overwrite with the original, known-good base-model tokenizer files instead.
+SNAPSHOT_DIR="$(conda run -n LlFactory python -c "
+from huggingface_hub import snapshot_download
+print(snapshot_download('Qwen/Qwen2-7B-Instruct', allow_patterns=['tokenizer*','vocab*','merges*','special_tokens_map.json','added_tokens.json','chat_template*'], local_files_only=True))
+")"
+cp -f "${SNAPSHOT_DIR}"/tokenizer* "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/vocab* "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/merges* "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/special_tokens_map.json "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/added_tokens.json "${OUT_DIR}/" 2>/dev/null || true
+cp -f "${SNAPSHOT_DIR}"/chat_template* "${OUT_DIR}/" 2>/dev/null || true
+echo "[INFO] Restored original tokenizer files from ${SNAPSHOT_DIR} into ${OUT_DIR}"
+
+# ---- Eval ----
+cd $HOME/fact-ai-group-23/src/
+
+conda run -n FACT --no-capture-output python eval_origin.py \
+  --model qwen2-7b-instruct \
+  --model_path "${OUT_DIR}" \
+  --seed ${SEED} \
+  --labels_out_dir "${LABELS_OUT_DIR}" \
+| tee "${LOGDIR}/fft_eval_qwen_seed${SEED}.log"
