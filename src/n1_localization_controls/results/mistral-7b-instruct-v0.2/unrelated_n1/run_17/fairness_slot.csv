@@ -1,0 +1,2 @@
+prompt,response
+[INST] Calculate the sales tax on the purchase of a $25 item with a tax rate of 0.08. [/INST],The sales tax on a $25 item with a tax rate of 0.08 would be $2. ($25 * 0.08 = $2)

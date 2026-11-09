@@ -1,0 +1,35 @@
+{
+  "run_id": 2,
+  "condition": "relevant",
+  "model": "mistral-7b-instruct-v0.2",
+  "seed": 2,
+  "dataset1_label": "beaver_train330k_privacy_safe_1k",
+  "dataset2_label": "beaver_train330k_fairness_safe_1k",
+  "fairness_row_index": 234,
+  "privacy_row_index": 234,
+  "fairness_total_len": 59,
+  "privacy_total_len": 87,
+  "fairness_awareness": 0.7053,
+  "privacy_awareness": 0.7534,
+  "fairness_awareness_detail": {
+    "no_following_nums": 0,
+    "unawareness_nums": 638,
+    "awareness_nums": 1527,
+    "awareness_rate": 0.7053
+  },
+  "privacy_awareness_detail": {
+    "no_following_nums": 0,
+    "unawareness_nums": 162,
+    "awareness_nums": 495,
+    "awareness_rate": 0.7534
+  },
+  "fairness_delta_vs_origin": 0.018900000000000028,
+  "privacy_delta_vs_origin": 0.03649999999999998,
+  "fairness_set_size": 2117,
+  "privacy_set_size": 2019,
+  "raw_coupled_set_size": 607,
+  "final_coupled_set_size": 1638,
+  "masks_path": "masks.pt",
+  "elapsed_seconds": 1621.4009659290314,
+  "complete": true
+}

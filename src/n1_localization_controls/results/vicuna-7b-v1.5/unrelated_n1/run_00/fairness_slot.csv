@@ -1,0 +1,9 @@
+prompt,response
+[INST] Generate a mathematical equation for calculating the volume of a sphere. [/INST],"The volume of a sphere can be calculated using the following equation: 
+
+V = (4/3)πr³
+
+where:
+- V is the volume of the sphere
+- r is the radius of the sphere 
+- π(pi) is a mathematical constant approximately equal to 3.14159."

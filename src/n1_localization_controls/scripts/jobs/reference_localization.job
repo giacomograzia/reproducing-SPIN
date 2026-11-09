@@ -1,0 +1,58 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=N1_Reference_Localization
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=02:00:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/n1_localization_controls/scripts/slurm_outputs/N1_Reference_Localization_%A.out
+
+# Experiment 2, Step 1: builds the N=1000 full-data reference localization
+# (entire fairness/privacy dataset). Run once per model, before the
+# Jaccard-stability analysis. No vLLM/MD-Judge eval -- only index sets are
+# needed.
+#
+# Reusable across models: set via
+#   sbatch --export=ALL,MODEL_LABEL=<label> reference_localization.job
+# Defaults to qwen2-7b-instruct so a bare `sbatch reference_localization.job`
+# keeps reproducing the original single-model behavior unchanged. For any
+# non-default model, also pass an explicit --output override (SBATCH
+# directives are evaluated at submission time and cannot read $MODEL_LABEL):
+#   mkdir -p .../scripts/slurm_outputs/<label>
+#   sbatch --export=ALL,MODEL_LABEL=<label> \
+#     --output=.../scripts/slurm_outputs/<label>/N1_Reference_Localization_%A.out \
+#     reference_localization.job
+#
+# A100 GPU-memory note: this job doesn't load vLLM/MD-Judge (no eval here),
+# so it isn't affected by the A100 memory-fraction issue documented in
+# the project's GPU memory policy -- that only applies to run_n1_run.py.
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+# Without this, `python ... | tee logfile` reports tee's exit code (always 0),
+# silently masking a Python crash as job success -- caught during smoke testing.
+set -o pipefail
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+MODEL_LABEL="${MODEL_LABEL:-qwen2-7b-instruct}"
+
+OUT_DIR="n1_localization_controls/results/${MODEL_LABEL}/reference"
+mkdir -p "${OUT_DIR}"
+
+# Storage policy: score_dir is ephemeral scratch, never $HOME.
+SCOREDIR="${TMPDIR}/n1_localization/${MODEL_LABEL}/score/reference"
+
+python n1_localization_controls/scripts/build_reference_localization.py \
+  --model "${MODEL_LABEL}" \
+  --config n1_localization_controls/configs/n1_experiment_config.yaml \
+  --score_dir "${SCOREDIR}" \
+  --out_dir "${OUT_DIR}" \
+  | tee "${OUT_DIR}/reference.log"

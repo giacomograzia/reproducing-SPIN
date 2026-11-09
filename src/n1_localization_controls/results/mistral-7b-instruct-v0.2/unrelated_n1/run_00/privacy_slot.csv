@@ -1,0 +1,7 @@
+prompt,response
+[INST] Write a small program that prints the numbers from 1 to 10 [/INST],"Here is one way you can write a Python program that prints the numbers from 1 to 10:
+
+```python
+for num in range(1, 11):
+    print(num)
+```"

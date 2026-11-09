@@ -1,0 +1,5 @@
+prompt,response
+"[INST] Given the following sentences, find the one that is grammatically incorrect. A)His parents forbid him from going.
+B)Them going was forbid by his parents.
+C)They forbid him going.
+D)His parents forbade him to go. [/INST]","The sentence that is grammatically incorrect is: B) Them going was forbid by his parents. The correct version of this sentence would be “His parents forbade their going."""

@@ -1,0 +1,46 @@
+#!/bin/bash
+
+#SBATCH --partition=rome
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=00:30:00
+#SBATCH --job-name=N1_Analysis
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/n1_localization_controls/scripts/slurm_outputs/N1_Analysis_%A.out
+
+# Runs the full Experiment 1 + Experiment 2 analysis/plotting pipeline.
+# CPU-only, reads small JSON/CSV/.pt files -- still submitted via sbatch
+# (never run inline on the login node) per the project's compute policy.
+# Requires: all 25 relevant + 25 unrelated runs and the reference
+# localization to have completed first, for the given model.
+#
+# Reusable across models: set via
+#   sbatch --export=ALL,MODEL_LABEL=<label> run_analysis.job
+# Defaults to qwen2-7b-instruct so a bare `sbatch run_analysis.job` keeps
+# reproducing the original single-model behavior unchanged. For any
+# non-default model, also pass an explicit --output override (SBATCH
+# directives are evaluated at submission time and cannot read $MODEL_LABEL):
+#   mkdir -p .../scripts/slurm_outputs/<label>
+#   sbatch --export=ALL,MODEL_LABEL=<label> \
+#     --output=.../scripts/slurm_outputs/<label>/N1_Analysis_%A.out \
+#     run_analysis.job
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+set -e
+
+MODEL_LABEL="${MODEL_LABEL:-qwen2-7b-instruct}"
+
+python n1_localization_controls/analysis/build_summary_tables.py --model "${MODEL_LABEL}"
+python n1_localization_controls/analysis/stats_experiment1.py --model "${MODEL_LABEL}"
+python n1_localization_controls/analysis/compute_jaccard_stability.py --model "${MODEL_LABEL}"
+python n1_localization_controls/analysis/stats_stability_vs_performance.py --model "${MODEL_LABEL}"
+python n1_localization_controls/analysis/plot_experiment1.py --model "${MODEL_LABEL}"
+python n1_localization_controls/analysis/plot_experiment2_stability.py --model "${MODEL_LABEL}"
+
+echo "N1 analysis pipeline complete for model=${MODEL_LABEL}."

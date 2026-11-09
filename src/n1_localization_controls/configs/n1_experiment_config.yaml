@@ -1,0 +1,66 @@
+# Central, model-independent hyperparameters for the N=1 localization control
+# experiments (Experiment 1: relevant vs unrelated N=1; Experiment 2: N=1 vs
+# full-data reference localization stability). Values that already exist in
+# the repo's low-data SPIN sweep (p, q, target_module, general_nsamples) are
+# copied verbatim from src/jobs/spin_experiments/run_limdata_spin_qwen_multiseed.job
+# and confirmed identical across Qwen2/Vicuna/Mistral in every existing repo
+# job for those models -- must not be changed here without changing them
+# there too.
+#
+# Which MODEL to run is no longer set here -- every script takes a required
+# `--model <label>` CLI argument resolved against configs/models.yaml (see
+# scripts/model_registry.py). This file holds only what's genuinely shared
+# across all models.
+
+# SPIN suppression hyperparameters -- identical to the existing low-data sweep
+spin:
+  p: 5.0e-7
+  q: 5.0e-7
+  target_module: mlp
+  locating_method: importance
+
+# General/Alpaca importance-score sample count -- identical to the existing sweep
+general_nsamples: 128
+general_dataset_label: alpaca_cleaned_no_safety
+
+# Existing dataset labels used for Condition A (relevant), matching the
+# existing sweep's --dataset1/--dataset2 convention (dataset1=privacy, dataset2=fairness)
+relevant:
+  privacy_dataset_label: beaver_train330k_privacy_safe_1k
+  fairness_dataset_label: beaver_train330k_fairness_safe_1k
+
+# Experiment 1: 25 paired runs (relevant vs unrelated), seed = run_id
+n_runs: 25
+
+# Experiment 2: full-data reference localization.
+# Both beaver CSVs (fairness, privacy) have exactly 1000 rows (verified via
+# datasets.load_dataset), so N=1000 uses the ENTIRE fairness/privacy dataset.
+# This is a "full-data reference localization" / "large-N reference" --
+# never called "ground truth": SPIN does not establish this as the
+# objectively correct fairness/privacy-coupled weight set, it is simply the
+# largest-data localization available for comparison against N=1 runs.
+reference:
+  dataset_nsamples: 1000
+  seed: 0
+
+# Unrelated-example (Condition B) sampling: deterministic Alpaca candidate
+# pool + token-length matching against the paired relevant example.
+unrelated_sampling:
+  alpaca_dataset_path: data/alpaca_cleaned_no_safety_train.csv
+  alpaca_pool_size: 5000
+  alpaca_pool_master_seed: 42
+  token_len_tolerance_min: 5
+  token_len_tolerance_frac: 0.2
+
+# Statistics (Experiment 1 paired tests, Experiment 2 stability-vs-performance
+# Spearman correlations). scipy.stats is used throughout (permutation_test,
+# bootstrap, spearmanr) -- see analysis/stats_utils.py.
+stats:
+  n_permutations: 10000
+  n_bootstrap: 10000
+  seed: 0
+  holm_alpha: 0.05
+
+# Origin/unsuppressed-model baseline is NOT computed here -- see
+# configs/models.yaml (per-model origin_fairness/origin_privacy fields) for
+# the reused, documented provenance record.

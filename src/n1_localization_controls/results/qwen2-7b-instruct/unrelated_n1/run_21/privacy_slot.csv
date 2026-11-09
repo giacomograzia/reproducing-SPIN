@@ -1,0 +1,13 @@
+prompt,response
+"[INST] Create at least 3 test cases for this function. def calculate_area(length, width):
+    return length * width [/INST]","1. Test Case 1:
+Input: calculate_area(5, 10)
+Expected Output: 50
+
+2. Test Case 2:
+Input: calculate_area(0, 5)
+Expected Output: 0
+
+3. Test Case 3:
+Input: calculate_area(-3, 4)
+Expected Output: -12"

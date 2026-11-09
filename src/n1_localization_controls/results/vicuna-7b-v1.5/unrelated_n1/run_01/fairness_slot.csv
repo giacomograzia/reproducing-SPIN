@@ -1,0 +1,2 @@
+prompt,response
+[INST] Classify this sentence as either an imperative or a question. This salad tastes wonderful. [/INST],This sentence is neither an imperative nor a question. It is a declarative statement.

@@ -1,0 +1,69 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=N1_Relevant
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=02:00:00
+#SBATCH --array=0-24
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/n1_localization_controls/scripts/slurm_outputs/N1_Relevant_%A_%a.out
+
+# Experiment 1, Condition A: 25 relevant N=1 runs. One array task = one run
+# (run_id = SLURM_ARRAY_TASK_ID). Requires configs/<model>/n1_run_manifest.json
+# to already exist (submit build_manifest.job first).
+#
+# Resumable: run_n1_run.py checks results/<model>/relevant_n1/run_XX/run_result.json
+# ["complete"] at start and exits immediately if already done, so
+# resubmitting this array job is always safe.
+#
+# Reusable across models: set via
+#   sbatch --export=ALL,MODEL_LABEL=<label> relevant_n1_array.job
+# Defaults to qwen2-7b-instruct so a bare `sbatch relevant_n1_array.job`
+# keeps reproducing the original single-model behavior unchanged. For any
+# non-default model, also pass an explicit --output override (SBATCH
+# directives are evaluated at submission time and cannot read $MODEL_LABEL):
+#   mkdir -p .../scripts/slurm_outputs/<label>
+#   sbatch --export=ALL,MODEL_LABEL=<label> \
+#     --output=.../scripts/slurm_outputs/<label>/N1_Relevant_%A_%a.out \
+#     relevant_n1_array.job
+#
+# GPU memory (the project's GPU memory policy): the 0.55 vLLM utilization /
+# fp16 MD-Judge settings baked into run_n1_run.py were only empirically
+# confirmed for Qwen2-7B on A100. Run a single-run smoke test
+# (--array=0-0) for any new model before trusting the full array.
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+# Without this, `python ... | tee logfile` reports tee's exit code (always 0),
+# silently masking a Python crash as job success -- caught during smoke testing.
+set -o pipefail
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+MODEL_LABEL="${MODEL_LABEL:-qwen2-7b-instruct}"
+
+RUN_ID=$SLURM_ARRAY_TASK_ID
+OUT_DIR="n1_localization_controls/results/${MODEL_LABEL}/relevant_n1/run_$(printf '%02d' ${RUN_ID})"
+mkdir -p "${OUT_DIR}"
+
+# Storage policy: score_dir/model_dir are ephemeral scratch, never $HOME.
+SCOREDIR="${TMPDIR}/n1_localization/${MODEL_LABEL}/score/relevant/run_${RUN_ID}"
+MODELDIR="${TMPDIR}/n1_localization/${MODEL_LABEL}/model/relevant/run_${RUN_ID}"
+
+python n1_localization_controls/scripts/run_n1_run.py \
+  --run_id ${RUN_ID} \
+  --condition relevant \
+  --model "${MODEL_LABEL}" \
+  --manifest "n1_localization_controls/configs/${MODEL_LABEL}/n1_run_manifest.json" \
+  --config n1_localization_controls/configs/n1_experiment_config.yaml \
+  --score_dir "${SCOREDIR}" \
+  --model_dir "${MODELDIR}" \
+  --out_dir "${OUT_DIR}" \
+  | tee "${OUT_DIR}/run.log"

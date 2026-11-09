@@ -1,0 +1,2 @@
+prompt,response
+[INST] Write the probability of an event. A single six-sided die is rolled [/INST],"The probability of any individual event occurring when rolling a single six-sided die is 1/6 or approximately 16.67%, as there are six equally likely possible outcomes."

@@ -1,0 +1,2 @@
+prompt,response
+[INST] Compute 12960000^(1/4). [/INST],"We can see that 6^4=6*6*6*6=36*6*6=216*6=1296 and that 10^4=10000. Therefore, 6^4*10^4=12960000, which means that 12960000^(1/4)=60."

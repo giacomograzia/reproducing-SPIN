@@ -1,0 +1,4 @@
+prompt,response
+"[INST] Classify the following cities as metropolitan or rural Berlin, Geneva, Boise [/INST]","- Berlin is a metropolitan city.
+- Geneva is a metropolitan city.
+- Boise is a metropolitan city, but it is towards the smaller side in terms of population and could be classified as a small metro or urban area."

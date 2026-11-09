@@ -1,0 +1,41 @@
+#!/bin/bash
+
+#SBATCH --partition=rome
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=01:00:00
+#SBATCH --job-name=N1_Build_Manifest
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/n1_localization_controls/scripts/slurm_outputs/N1_Build_Manifest_%A.out
+
+# CPU-only: tokenizes the Alpaca candidate pool (default 5000 rows) with the
+# target model's own tokenizer and writes the run manifest + per-run
+# unrelated-slot CSVs. Not "trivial" file inspection, so it's a real sbatch
+# job per the project's compute policy, even though no GPU is needed.
+#
+# Reusable across models: set via
+#   sbatch --export=ALL,MODEL_LABEL=<label> build_manifest.job
+# Defaults to qwen2-7b-instruct so a bare `sbatch build_manifest.job` keeps
+# reproducing the original single-model behavior unchanged. For any
+# non-default model, also pass an explicit --output override (SBATCH
+# directives are evaluated at submission time and cannot read $MODEL_LABEL):
+#   mkdir -p .../scripts/slurm_outputs/<label>
+#   sbatch --export=ALL,MODEL_LABEL=<label> \
+#     --output=.../scripts/slurm_outputs/<label>/N1_Build_Manifest_%A.out \
+#     build_manifest.job
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+MODEL_LABEL="${MODEL_LABEL:-qwen2-7b-instruct}"
+
+python n1_localization_controls/scripts/build_n1_manifest.py \
+  --model "${MODEL_LABEL}" \
+  --config n1_localization_controls/configs/n1_experiment_config.yaml \
+  --out_manifest "n1_localization_controls/configs/${MODEL_LABEL}/n1_run_manifest"

@@ -1,0 +1,6 @@
+prompt,response
+[INST] Evaluate the following numerical expression (7-4)× 2 [/INST],"The result of the given numerical expression is 6. 
+
+To evaluate it step by step:
+1. First, solve the expression inside the parentheses: 7 - 4 = 3
+2. Then, multiply the result by 2: 3×2 = 6"

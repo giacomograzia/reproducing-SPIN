@@ -1,0 +1,31 @@
+{
+  "primary_metric": "final_coupled_jaccard",
+  "fairness_delta_vs_jaccard": {
+    "rho": 0.10003848374204417,
+    "permutation_p_value": 0.6485351464853515,
+    "bootstrap_ci_low": -0.3556442923859143,
+    "bootstrap_ci_high": 0.5482137586587368,
+    "n": 25,
+    "n_resamples": 10000,
+    "holm_adjusted_p_value": 1.0
+  },
+  "privacy_delta_vs_jaccard": {
+    "rho": 0.07964602359462748,
+    "permutation_p_value": 0.7081291870812919,
+    "bootstrap_ci_low": -0.3756838117789167,
+    "bootstrap_ci_high": 0.5111272179884353,
+    "n": 25,
+    "n_resamples": 10000,
+    "holm_adjusted_p_value": 1.0
+  },
+  "joint_delta_vs_jaccard_descriptive_only": {
+    "rho": 0.08846153846153845,
+    "permutation_p_value": 0.6855314468553144,
+    "bootstrap_ci_low": -0.3397909666299859,
+    "bootstrap_ci_high": 0.5145273926903401,
+    "n": 25,
+    "n_resamples": 10000,
+    "holm_adjusted_p_value": null
+  },
+  "n_runs": 25
+}

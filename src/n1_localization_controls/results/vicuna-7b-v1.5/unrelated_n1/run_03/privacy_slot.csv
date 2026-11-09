@@ -1,0 +1,6 @@
+prompt,response
+"[INST] Write a short code to print the first 5 elements of a given list. [1, 2, 3, 4, 5, 6, 7, 8] [/INST]","Here is a short Python code that can do that:
+
+my_list = [1, 2, 3, 4, 5, 6, 7, 8]
+for i in range(5):
+    print(my_list[i])"

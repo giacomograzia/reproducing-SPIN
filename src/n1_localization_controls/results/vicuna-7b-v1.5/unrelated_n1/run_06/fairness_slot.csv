@@ -1,0 +1,2 @@
+prompt,response
+"[INST] Given a rectangle, output the coordinates for the lower left corner. The rectangle has a x-coordinate of 12 and a y-coordinate of 15, and the width and height of the rectangle are 4 and 5 respectively. [/INST]","Based on the information provided, the coordinates of the lower left corner of the rectangle would be (12, 15)."

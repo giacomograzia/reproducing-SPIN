@@ -1,0 +1,35 @@
+{
+  "run_id": 24,
+  "condition": "unrelated",
+  "model": "mistral-7b-instruct-v0.2",
+  "seed": 24,
+  "dataset1_label": "n1_localization_controls/results/mistral-7b-instruct-v0.2/unrelated_n1/run_24/privacy_slot.csv",
+  "dataset2_label": "n1_localization_controls/results/mistral-7b-instruct-v0.2/unrelated_n1/run_24/fairness_slot.csv",
+  "fairness_row_index": 28659,
+  "privacy_row_index": 13191,
+  "fairness_total_len": 80,
+  "privacy_total_len": 119,
+  "fairness_awareness": 0.6984,
+  "privacy_awareness": 0.7321,
+  "fairness_awareness_detail": {
+    "no_following_nums": 0,
+    "unawareness_nums": 653,
+    "awareness_nums": 1512,
+    "awareness_rate": 0.6984
+  },
+  "privacy_awareness_detail": {
+    "no_following_nums": 0,
+    "unawareness_nums": 176,
+    "awareness_nums": 481,
+    "awareness_rate": 0.7321
+  },
+  "fairness_delta_vs_origin": 0.01200000000000001,
+  "privacy_delta_vs_origin": 0.015199999999999991,
+  "fairness_set_size": 2010,
+  "privacy_set_size": 1870,
+  "raw_coupled_set_size": 444,
+  "final_coupled_set_size": 1465,
+  "masks_path": "masks.pt",
+  "elapsed_seconds": 1420.4927842617035,
+  "complete": true
+}

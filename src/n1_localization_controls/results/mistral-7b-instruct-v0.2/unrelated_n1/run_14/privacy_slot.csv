@@ -1,0 +1,4 @@
+prompt,response
+[INST] Compute the sum of squares of given numbers. 12 and 17 [/INST],"The square of 12 is 144 (12 * 12) and the square of 17 is 289 (17 * 17). 
+
+So, the sum of squares of 12 and 17 is 144 + 289 = 433."

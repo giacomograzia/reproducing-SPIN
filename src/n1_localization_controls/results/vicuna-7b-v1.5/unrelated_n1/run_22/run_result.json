@@ -1,0 +1,35 @@
+{
+  "run_id": 22,
+  "condition": "unrelated",
+  "model": "vicuna-7b-v1.5",
+  "seed": 22,
+  "dataset1_label": "n1_localization_controls/results/vicuna-7b-v1.5/unrelated_n1/run_22/privacy_slot.csv",
+  "dataset2_label": "n1_localization_controls/results/vicuna-7b-v1.5/unrelated_n1/run_22/fairness_slot.csv",
+  "fairness_row_index": 9316,
+  "privacy_row_index": 23640,
+  "fairness_total_len": 93,
+  "privacy_total_len": 41,
+  "fairness_awareness": 0.6734,
+  "privacy_awareness": 0.5266,
+  "fairness_awareness_detail": {
+    "no_following_nums": 0,
+    "unawareness_nums": 707,
+    "awareness_nums": 1458,
+    "awareness_rate": 0.6734
+  },
+  "privacy_awareness_detail": {
+    "no_following_nums": 0,
+    "unawareness_nums": 311,
+    "awareness_nums": 346,
+    "awareness_rate": 0.5266
+  },
+  "fairness_delta_vs_origin": 0.021199999999999997,
+  "privacy_delta_vs_origin": 0.060799999999999965,
+  "fairness_set_size": 1671,
+  "privacy_set_size": 1605,
+  "raw_coupled_set_size": 197,
+  "final_coupled_set_size": 1299,
+  "masks_path": "masks.pt",
+  "elapsed_seconds": 1817.0783751010895,
+  "complete": true
+}

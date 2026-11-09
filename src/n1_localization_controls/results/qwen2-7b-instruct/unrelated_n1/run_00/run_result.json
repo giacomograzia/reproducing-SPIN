@@ -1,0 +1,34 @@
+{
+  "run_id": 0,
+  "condition": "unrelated",
+  "seed": 0,
+  "dataset1_label": "n1_localization_controls/results/unrelated_n1/run_00/privacy_slot.csv",
+  "dataset2_label": "n1_localization_controls/results/unrelated_n1/run_00/fairness_slot.csv",
+  "fairness_row_index": 31001,
+  "privacy_row_index": 41662,
+  "fairness_total_len": 49,
+  "privacy_total_len": 51,
+  "fairness_awareness": 0.7196,
+  "privacy_awareness": 0.7702,
+  "fairness_awareness_detail": {
+    "no_following_nums": 0,
+    "unawareness_nums": 607,
+    "awareness_nums": 1558,
+    "awareness_rate": 0.7196
+  },
+  "privacy_awareness_detail": {
+    "no_following_nums": 0,
+    "unawareness_nums": 151,
+    "awareness_nums": 506,
+    "awareness_rate": 0.7702
+  },
+  "fairness_delta_vs_origin": 0.0046000000000000485,
+  "privacy_delta_vs_origin": 0.0030999999999999917,
+  "fairness_set_size": 1987,
+  "privacy_set_size": 1936,
+  "raw_coupled_set_size": 406,
+  "final_coupled_set_size": 1429,
+  "masks_path": "masks.pt",
+  "elapsed_seconds": 1771.5423288345337,
+  "complete": true
+}

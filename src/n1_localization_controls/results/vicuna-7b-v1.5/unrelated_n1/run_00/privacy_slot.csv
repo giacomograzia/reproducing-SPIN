@@ -1,0 +1,2 @@
+prompt,response
+[INST] What is the value of 2^3×3×5^3×7? [/INST],"2^3×3×5^3×7=(2*5)^3×3×7=10^3×21=21,000."

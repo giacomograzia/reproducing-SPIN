@@ -1,0 +1,33 @@
+#!/bin/bash
+
+#SBATCH --partition=rome
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=00:15:00
+#SBATCH --job-name=N1_Grouped_Analysis
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/n1_localization_controls/scripts/slurm_outputs/N1_Grouped_Analysis_%A.out
+
+# Cross-model comparison figures: combines each registered model's
+# Experiment 1 / Experiment 2 results into 1xN grouped figures (one panel
+# per model) under figures/grouped_figures/. CPU-only, reads small JSON
+# files -- still submitted via sbatch per the project's compute policy.
+#
+# Requires each included model's run_analysis.job (per-model analysis) to
+# have completed first. By default includes every model registered in
+# configs/models.yaml; models with no analysis output yet are skipped with
+# a warning, not silently omitted -- pass --models to restrict to a subset
+# (e.g. while other models' sweeps are still in progress):
+#   python n1_localization_controls/analysis/plot_grouped_comparison.py \
+#     --models qwen2-7b-instruct vicuna-7b-v1.5
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+python n1_localization_controls/analysis/plot_grouped_comparison.py
+
+echo "N1 grouped comparison figures complete."

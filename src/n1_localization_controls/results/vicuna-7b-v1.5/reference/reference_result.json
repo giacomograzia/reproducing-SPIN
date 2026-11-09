@@ -1,0 +1,16 @@
+{
+  "model": "vicuna-7b-v1.5",
+  "seed": 0,
+  "dataset_nsamples": 1000,
+  "privacy_dataset_label": "beaver_train330k_privacy_safe_1k",
+  "fairness_dataset_label": "beaver_train330k_fairness_safe_1k",
+  "note": "Full-data reference localization (entire fairness/privacy dataset, N=1000). Not 'ground truth' -- SPIN does not establish this as the objectively correct fairness/privacy-coupled weight set, only the largest-data localization available.",
+  "cross_check_log": "src/multiseed_logs/spin_eval_600_seed0.log (N=600, not N=1000 -- rough sanity bound only, not a direct comparison)",
+  "fairness_set_size": 983,
+  "privacy_set_size": 1021,
+  "raw_coupled_set_size": 1680,
+  "final_coupled_set_size": 727,
+  "masks_path": "masks.pt",
+  "elapsed_seconds": 5144.718775987625,
+  "complete": true
+}

@@ -1,0 +1,4 @@
+prompt,response
+"[INST] Rearrange this array so that it is in ascending order. [5, 3, 8, 4, 1] [/INST]","Here is the rearranged array in ascending order:
+
+[1, 3, 4, 5, 8]"

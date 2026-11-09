@@ -1,0 +1,7 @@
+prompt,response
+"[INST] Given a sentence, break it down into its syntactic components such as noun phrase, verb phrase, and noun phrase. John saw the big dog bark. [/INST]","The sentence ""John saw the big dog bark"" can be broken down into:
+
+- Noun Phrase: ""John""
+- Verb Phrase: ""saw""
+- Noun Phrase: ""the big dog""
+- Verb Phrase: ""bark"""

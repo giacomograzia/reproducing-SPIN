@@ -1,0 +1,4 @@
+prompt,response
+"[INST] Classify the following types of cars: Toyota Corolla, Hyundai Sonata, and Lexus LS400. Toyota Corolla, Hyundai Sonata, and Lexus LS400 [/INST]","Toyota Corolla is a compact car.
+Hyundai Sonata is a midsize car.
+Lexus LS400 is a full-size luxury sedan car."

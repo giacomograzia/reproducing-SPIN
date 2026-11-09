@@ -1,0 +1,6 @@
+prompt,response
+[INST] Write a Javascript code that outputs 'Hello world'. [/INST],"Here is an example of a simple JavaScript code that outputs 'Hello World':
+
+```javascript
+console.log('Hello World');
+```"

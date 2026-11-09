@@ -1,0 +1,3 @@
+prompt,response
+[INST] Create a math expression that gives the area of a square [/INST],"One way to express the formula mathematically for the area of a square, where `s` is the length of a side, is: 
+`A = s`<sup>`2`</sup>"

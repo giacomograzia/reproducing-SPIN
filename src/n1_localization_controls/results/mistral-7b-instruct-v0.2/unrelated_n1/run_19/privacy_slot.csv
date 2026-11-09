@@ -1,0 +1,2 @@
+prompt,response
+"[INST] Classify the given sentiment into a numerical sentiment score from 0 (very negative) to 1 (very positive). ""I can not wait to see you again soon!"" [/INST]","The sentiment of the given text is positive. A numerical sentiment score for this sentence will be close to 1, for example, 0.9."

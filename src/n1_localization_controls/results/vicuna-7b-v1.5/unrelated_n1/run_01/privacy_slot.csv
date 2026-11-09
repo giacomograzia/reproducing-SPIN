@@ -1,0 +1,4 @@
+prompt,response
+"[INST] Find the most efficient way to sort the following array using a single line of code. 
+
+[6, 8, 12, 4, 7] [6, 8, 12, 4, 7] [/INST]","sorted([6, 8, 12, 4, 7])"
