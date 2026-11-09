@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# CPU-only aggregation step: parses the eval logs written by the GPU
+# multiseed array jobs (Origin/SPIN/FFT/LoRA/DoRA), computes mean/std,
+# bootstrap CIs, and paired-bootstrap significance (SPIN vs each baseline).
+#
+# Run this AFTER all *_multiseed.job array jobs have finished for every
+# method/model you want in the table. It does not touch a GPU, so use a
+# CPU partition — replace "rome" below with this cluster's actual CPU
+# partition name (check `sinfo` first, this is left as a placeholder).
+#
+# Typical usage, once you have the SLURM job IDs of the GPU array jobs:
+#   sbatch --dependency=afterok:<jobid1>:<jobid2>:...:<jobidN> \
+#     run_aggregate_multiseed.job
+#
+# Or just submit standalone once you've confirmed the GPU jobs are done:
+#   sbatch run_aggregate_multiseed.job
+
+#SBATCH --partition=rome
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=00:15:00
+#SBATCH --job-name=Aggregate_MultiSeed_Table1
+#SBATCH --output=Aggregate_MultiSeed_Table1_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd "$HOME/fact-ai-group-23/reproduction/figures_and_tables/baselines-table-1/"
+
+source activate FACT
+
+export SCRATCH_SHARED="/scratch-shared/$USER"
+
+python aggregate_multiseed_results.py --seeds 0 1 2 --out results_multiseed.py

@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#SBATCH --partition=rome
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --time=00:15:00
+#SBATCH --job-name=Plot_Malicious_Data
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/output_spin/Plot_Malicious_Data_%A.out
+
+# CPU-only: regenerates reproduction/artifacts/malicious-data/malicious_awareness_comparison.{png,pdf}
+# from MALICIOUS_DATA in results_dict.py (matplotlib lives in the FACT env).
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/reproduction/figures_and_tables/malicious-data
+
+source activate FACT
+
+python malicious-plots.py
