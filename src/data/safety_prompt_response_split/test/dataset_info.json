@@ -1,0 +1,52 @@
+{
+  "builder_name": "json",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "pku-safe_rlhf-30_k",
+  "dataset_size": 24118521,
+  "description": "",
+  "download_checksums": {
+    "hf://datasets/PKU-Alignment/PKU-SafeRLHF-30K@334ad7d4d008421be5a9b098dd256951eba1a5c5/round0/train.jsonl.xz": {
+      "num_bytes": 3777072,
+      "checksum": null
+    },
+    "hf://datasets/PKU-Alignment/PKU-SafeRLHF-30K@334ad7d4d008421be5a9b098dd256951eba1a5c5/round0/test.jsonl.xz": {
+      "num_bytes": 346340,
+      "checksum": null
+    }
+  },
+  "download_size": 4123412,
+  "features": {
+    "prompt": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "response": {
+      "dtype": "string",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 28241933,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 21692720,
+      "num_examples": 26874,
+      "dataset_name": "pku-safe_rlhf-30_k"
+    },
+    "test": {
+      "name": "test",
+      "num_bytes": 2425801,
+      "num_examples": 2989,
+      "dataset_name": "pku-safe_rlhf-30_k"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

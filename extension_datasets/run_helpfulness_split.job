@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# CPU-only dataset construction: downloads HelpSteer and builds the
+# leakage-safe, one-row-per-prompt helpfulness==4 train/test split (see
+# helpfulness.py). No GPU needed -- mirrors run_aggregate_multiseed.job's
+# CPU-partition style.
+
+#SBATCH --partition=rome
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --time=00:30:00
+#SBATCH --job-name=Helpfulness_Train_Test_Split
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/extension_datasets/Helpfulness_Train_Test_Split_%A.out
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd "$HOME/fact-ai-group-23"
+
+source activate FACT
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+python extension_datasets/helpfulness.py
