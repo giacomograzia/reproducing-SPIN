@@ -1,0 +1,76 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Unreldata_Spin_Mistral
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=06:00:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/output_spin/Unrel_Data_Spin_Mistral_%A.out
+
+# Unrelated-data control for the malicious-data SPIN experiment (reviewer
+# request: distinguish "SPIN is robust to malicious localization data
+# specifically" from "SPIN reacts the same way to any off-target data").
+# Byte-identical to run_maldata_spin_mistral.job except --dataset1/--dataset2
+# point at the disjoint unrelated-Alpaca slices instead of the unsafe beaver
+# CSVs. Requires build_unrelated_control_slices.job to have run first.
+#
+# Storage policy: score_dir/model_dir on this account's own scratch-shared,
+# not the stale scur0168 path used by the original malicious jobs (that
+# path no longer exists -- confirmed before writing this job).
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+SCOREDIR="/scratch-shared/aramautar1/unreldata_control/significance_score"
+MODELDIR="/scratch-shared/aramautar1/unreldata_control/models"
+MODEL_LABEL="mistral-7b-instruct-v0.2"
+MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+NSAMPLES=128
+SEED=0
+DATASET1="data/unrelated_control/slice_dataset1.csv"
+DATASET2="data/unrelated_control/slice_dataset2.csv"
+
+# 1) Compute importance scores (general + slice1 + slice2)
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset alpaca_cleaned_no_safety \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset "${DATASET1}" \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset "${DATASET2}" \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+# 2) SPIN + run evaluation (like in main.py)
+srun python main.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset1 "${DATASET1}" \
+  --dataset2 "${DATASET2}" \
+  --target_module mlp \
+  --p 5e-7 \
+  --q 5e-7 \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR} \
+  --model_dir ${MODELDIR}

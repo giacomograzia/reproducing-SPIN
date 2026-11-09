@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#SBATCH --partition=rome
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=00:30:00
+#SBATCH --job-name=Build_Unrelated_Control_Slices
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/output_spin/Build_Unrelated_Control_Slices_%A.out
+
+# CPU-only, one-off: materializes the two disjoint 128-row "unrelated" data
+# slices used by run_unreldata_spin_{qwen,vicuna,mistral}.job. Real work
+# (loads + filters + writes a 45874-row CSV), so submitted via sbatch per
+# the project's compute policy even though no GPU is needed. Run once; shared
+# across all 3 models.
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+python jobs/spin_experiments/build_unrelated_control_slices.py
