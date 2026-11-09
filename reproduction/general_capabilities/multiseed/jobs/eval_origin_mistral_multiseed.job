@@ -1,0 +1,59 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=GenCap_Origin_Mistral_MultiSeed
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=03:00:00
+#SBATCH --array=0-2
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/general_capabilities/multiseed/outputs/GenCap_Origin_Mistral_MultiSeed_%A_%a.out
+
+# One array task per eval seed (0-2). Evaluates the SAME fixed checkpoint on
+# hellaswag/mmlu/winogrande 3x with different seeds and averages -- greedy
+# (temperature=0) decoding on GPU is not guaranteed bit-identical run to run
+# (kernel/algorithm selection, floating-point reduction order), so this
+# measures eval-time noise. Aggregate afterwards with
+# aggregate_general_capabilities_multiseed.py. This does NOT vary the
+# training seed of the checkpoint itself -- see general_capabilities/README.md.
+
+set -euo pipefail
+trap 'echo "[ERROR] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/reproduction/general_capabilities
+
+source activate hellaswag_eval
+
+SEED=$SLURM_ARRAY_TASK_ID
+CATEGORY="origin"
+MODEL_LABEL="mistral-7b-instruct-v0.2"
+MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+
+RESULTS_DIR="$HOME/fact-ai-group-23/reproduction/general_capabilities/results/multiseed_eval/${CATEGORY}/${MODEL_LABEL}"
+mkdir -p "${RESULTS_DIR}"
+
+declare -A TASK_TYPE
+TASK_TYPE[hellaswag]="mcq"
+TASK_TYPE[mmlu]="mcq"
+TASK_TYPE[winogrande]="mcq"
+
+for BENCHMARK in hellaswag mmlu winogrande; do
+  OUT_JSON="${RESULTS_DIR}/${BENCHMARK}_seed${SEED}.json"
+  if [ -f "${OUT_JSON}" ]; then
+    echo "[INFO] ${OUT_JSON} already exists, skipping (resumable)"
+    continue
+  fi
+  echo "[INFO] category=${CATEGORY} model=${MODEL_LABEL} benchmark=${BENCHMARK} seed=${SEED}"
+  python eval_v2.py \
+    --model_name "${MODEL_LABEL}" \
+    --model_path "${MODEL_PATH}" \
+    --benchmark "${BENCHMARK}" \
+    --task_type "${TASK_TYPE[${BENCHMARK}]}" \
+    --seed "${SEED}" \
+    --category "${CATEGORY}" \
+    --results_dir "${RESULTS_DIR}"
+done

@@ -1,0 +1,9 @@
+model,benchmark,score,ci_low,ci_high,diff_vs_origin,diff_ci_low,diff_ci_high,p_value,mcnemar_p
+origin_qwen2-7b-instruct,xstest_safe,0.852,0.808,0.892,0.0,0.0,0.0,1.0,
+spin_seed0_qwen2-7b-instruct,xstest_safe,0.812,0.764,0.86,-0.04,-0.076,-0.008,0.026,0.041
+origin_qwen2-7b-instruct,xstest_unsafe,0.675,0.61,0.74,0.0,0.0,0.0,1.0,
+spin_seed0_qwen2-7b-instruct,xstest_unsafe,0.73,0.67,0.79,0.055,0.0,0.11,0.058,0.08
+origin_mistral-7b-instruct-v0.2,xstest_safe,1.0,1.0,1.0,0.0,0.0,0.0,1.0,
+spin_seed0_mistral-7b-instruct-v0.2,xstest_safe,0.992,0.98,1.0,-0.008,-0.02,0.0,0.271,0.5
+origin_mistral-7b-instruct-v0.2,xstest_unsafe,0.015,0.0,0.035,0.0,0.0,0.0,1.0,
+spin_seed0_mistral-7b-instruct-v0.2,xstest_unsafe,0.02,0.005,0.04,0.005,-0.01,0.025,0.789,1.0

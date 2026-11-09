@@ -1,0 +1,28 @@
+#!/bin/bash
+
+#SBATCH --partition=staging
+#SBATCH --job-name=Refusal_PipelineTest
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --time=00:15:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/refusal/outputs/Refusal_PipelineTest_%A.out
+
+# CPU-only validation of everything in the over-refusal pipeline except the
+# vLLM generation itself: classifier, prompt-set loaders, JSONL -> parquet
+# scorer, paired bootstrap, McNemar, and the pre-existing bootstrap_ci selftest.
+#
+# Run this BEFORE the GPU jobs. The refusal step executes at the very end of a
+# SPIN job, after ~30 min of checkpoint re-derivation, so a trivial bug caught
+# here costs seconds instead of a wasted GPU allocation.
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+source activate FACT
+
+cd $HOME/fact-ai-group-23/reproduction/general_capabilities
+
+python test_refusal_pipeline.py

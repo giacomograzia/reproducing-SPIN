@@ -1,0 +1,57 @@
+#!/bin/bash
+
+#SBATCH --partition=staging
+#SBATCH --job-name=Refusal_DatasetPrep
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --time=00:20:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/refusal/outputs/Refusal_DatasetPrep_%A.out
+
+# Step 0 of the over-refusal evaluation: materialize the two prompt sets into
+# src/data/ and print their schemas so the loader logic in src/eval_refusal.py
+# can be checked against what actually downloaded (the exact HF repo ids and
+# column names were unverified when this was written).
+#
+# CPU-only and network-bound -- no GPU needed. Runs on `staging`, which is the
+# partition with outbound internet access for downloads.
+#
+# Expected:
+#   XSTest   -> 450 rows: 250 safe + 200 unsafe (contrast_*), ~20 types
+#   OR-Bench -> ~1000 rows across 10 categories
+#
+# XSTest is the primary benchmark; OR-Bench is generated now but analysed only
+# if the XSTest result warrants it (see the plan's Phase A/B split). A failure
+# in the OR-Bench step therefore must not mask a successful XSTest prep, so the
+# two are reported independently below.
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+source activate FACT
+
+set -uo pipefail
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+cd $HOME/fact-ai-group-23
+
+echo "[INFO] $(date '+%H:%M:%S') preparing XSTest (primary)"
+python extension_datasets/xstest_test.py
+XSTEST_RC=$?
+
+echo
+echo "[INFO] $(date '+%H:%M:%S') preparing OR-Bench hard-1k (secondary)"
+python extension_datasets/or_bench_test.py
+ORBENCH_RC=$?
+
+echo
+echo "===================== summary ====================="
+echo "XSTest   exit=${XSTEST_RC}  -> $( [ ${XSTEST_RC} -eq 0 ] && echo OK || echo FAILED )"
+echo "OR-Bench exit=${ORBENCH_RC}  -> $( [ ${ORBENCH_RC} -eq 0 ] && echo OK || echo FAILED )"
+ls -la $HOME/fact-ai-group-23/src/data/xstest.csv $HOME/fact-ai-group-23/src/data/or_bench_hard.csv 2>&1
+
+# Only XSTest is allowed to fail the job: it is the primary benchmark and
+# nothing downstream works without it. OR-Bench failing is recoverable (its
+# analysis is deferred anyway) and is reported above rather than blocking.
+exit ${XSTEST_RC}

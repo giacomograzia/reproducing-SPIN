@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# CPU-only aggregation step: parses the per-seed JSON results written by the
+# GPU multiseed array jobs (eval_origin_*_multiseed.job, eval_fft_*_multiseed.job,
+# ...), computes mean/std/bootstrap CI, and writes a CSV + Python module for
+# plotting.
+#
+# Run this AFTER the GPU multiseed array jobs you care about have finished.
+#   sbatch --dependency=afterok:<jobid1>:<jobid2>:...:<jobidN> \
+#     run_aggregate_general_capabilities.job
+# Or just submit standalone once you've confirmed the GPU jobs are done:
+#   sbatch run_aggregate_general_capabilities.job
+
+#SBATCH --partition=rome
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=00:15:00
+#SBATCH --job-name=Aggregate_GenCap_MultiSeed
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/general_capabilities/multiseed/outputs/Aggregate_GenCap_MultiSeed_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd "$HOME/fact-ai-group-23/reproduction/general_capabilities/multiseed"
+
+source activate FACT
+
+python aggregate_general_capabilities_multiseed.py --seeds 0 1 2

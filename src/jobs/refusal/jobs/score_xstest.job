@@ -1,0 +1,46 @@
+#!/bin/bash
+
+#SBATCH --partition=staging
+#SBATCH --job-name=Refusal_ScoreXSTest
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --time=00:10:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/refusal/outputs/Refusal_ScoreXSTest_%A.out
+
+# Phase A: score XSTest generations into per-item parquet, then run the paired
+# bootstrap + McNemar for the origin-vs-SPIN comparison. CPU-only.
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+source activate FACT
+
+set -euo pipefail
+
+cd $HOME/fact-ai-group-23/reproduction/general_capabilities
+
+echo "=== scoring ==="
+python score_refusal.py --benchmarks xstest \
+  --model_ids origin_qwen2-7b-instruct spin_seed0_qwen2-7b-instruct \
+              origin_mistral-7b-instruct-v0.2 spin_seed0_mistral-7b-instruct-v0.2
+
+echo
+echo "=== bootstrap + McNemar: Qwen ==="
+python bootstrap_ci.py --benchmark xstest_safe \
+  --origin_name origin_qwen2-7b-instruct --spin_name spin_seed0_qwen2-7b-instruct
+python bootstrap_ci.py --benchmark xstest_unsafe \
+  --origin_name origin_qwen2-7b-instruct --spin_name spin_seed0_qwen2-7b-instruct
+
+echo
+echo "=== bootstrap + McNemar: Mistral ==="
+python bootstrap_ci.py --benchmark xstest_safe \
+  --origin_name origin_mistral-7b-instruct-v0.2 --spin_name spin_seed0_mistral-7b-instruct-v0.2
+python bootstrap_ci.py --benchmark xstest_unsafe \
+  --origin_name origin_mistral-7b-instruct-v0.2 --spin_name spin_seed0_mistral-7b-instruct-v0.2
+
+echo
+echo "=== --all CSV ==="
+python bootstrap_ci.py --all --pairs \
+  origin_qwen2-7b-instruct:spin_seed0_qwen2-7b-instruct \
+  origin_mistral-7b-instruct-v0.2:spin_seed0_mistral-7b-instruct-v0.2

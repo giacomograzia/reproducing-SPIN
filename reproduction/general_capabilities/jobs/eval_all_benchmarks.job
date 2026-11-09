@@ -1,0 +1,76 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=GenCap_All_Origin_Qwen
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=03:00:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/general_capabilities/jobs/outputs/GenCap_All_Origin_Qwen_%A.out
+
+# Runs hellaswag + mmlu + winogrande + perplexity for ONE fixed model
+# checkpoint (no seed loop -- see bootstrap_ci.py's docstring for why: greedy
+# decoding + full fixed eval sets mean re-running with a different --seed
+# reproduces an identical score here). This is also the smoke test for the
+# new per-item capture path (save_per_item_accuracy/save_per_item_perplexity
+# in eval_v2.py) before running it across every model.
+#
+# Time budget derived from historical single-benchmark runs on this same
+# model (sacct, job IDs 18677909/18678176/18784974): hellaswag ~8min,
+# mmlu ~26min, winogrande ~1min (all Qwen2-7B-Instruct on gpu_h100).
+# Perplexity has never been run in this pipeline before -- no historical
+# timing exists for it, so this is a genuine unknown the smoke test is
+# partly meant to establish. 3h total leaves large headroom; resumable
+# (skips any benchmark whose output already exists) so a re-submit after
+# a timeout just continues instead of redoing finished benchmarks.
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/reproduction/general_capabilities
+
+# Activated BEFORE `set -u` below: conda's own activate.d hooks for this env
+# (e.g. libblas_mkl_activate.sh) reference variables they don't unconditionally
+# set, which crashes immediately under `set -u` (confirmed: job 26082985 died
+# in 12s on "MKL_INTERFACE_LAYER: unbound variable"). Real script errors are
+# still caught below via the trap once strict mode is enabled.
+source activate hellaswag_eval
+
+set -euo pipefail
+trap 'echo "[ERROR] Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+CATEGORY="origin"
+MODEL_LABEL="qwen2-7b-instruct"
+MODEL_PATH="Qwen/Qwen2-7B-Instruct"
+SEED=0
+
+RESULTS_DIR="$HOME/fact-ai-group-23/reproduction/general_capabilities/results/smoke_test/${CATEGORY}/${MODEL_LABEL}"
+mkdir -p "${RESULTS_DIR}"
+
+declare -A TASK_TYPE
+TASK_TYPE[hellaswag]="mcq"
+TASK_TYPE[mmlu]="mcq"
+TASK_TYPE[winogrande]="mcq"
+TASK_TYPE[perplexity]="ppl"
+
+for BENCHMARK in hellaswag mmlu winogrande perplexity; do
+  OUT_JSON="${RESULTS_DIR}/${BENCHMARK}_seed${SEED}.json"
+  if [ -f "${OUT_JSON}" ]; then
+    echo "[INFO] ${OUT_JSON} already exists, skipping (resumable)"
+    continue
+  fi
+  echo "[INFO] $(date '+%H:%M:%S') starting category=${CATEGORY} model=${MODEL_LABEL} benchmark=${BENCHMARK}"
+  python eval_v2.py \
+    --model_name "${MODEL_LABEL}" \
+    --model_path "${MODEL_PATH}" \
+    --benchmark "${BENCHMARK}" \
+    --task_type "${TASK_TYPE[${BENCHMARK}]}" \
+    --seed "${SEED}" \
+    --category "${CATEGORY}" \
+    --results_dir "${RESULTS_DIR}"
+  echo "[INFO] $(date '+%H:%M:%S') finished benchmark=${BENCHMARK}"
+done
+
+echo "[INFO] DONE. Per-item files: $HOME/fact-ai-group-23/reproduction/general_capabilities/per_item/*__${CATEGORY}_${MODEL_LABEL}.parquet"
+echo "[INFO] Aggregate JSON summaries: ${RESULTS_DIR}/"

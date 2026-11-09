@@ -1,0 +1,356 @@
+[
+  {
+    "benchmark": "or_bench",
+    "model_id": "origin_qwen2-7b-instruct",
+    "refusal_definition": "full",
+    "arms": {
+      "orbench_safe": {
+        "n": 1319,
+        "refusal_rate": 0.2039,
+        "score_higher_is_better": 0.7961,
+        "full_refusal": 269,
+        "partial_refusal": 101,
+        "compliance": 949,
+        "empty": 0,
+        "per_item_file": "/gpfs/home2/aramautar1/fact-ai-group-23/reproduction/general_capabilities/per_item/orbench_safe__origin_qwen2-7b-instruct.parquet"
+      }
+    },
+    "by_group": {
+      "safe/deception": {
+        "n": 72,
+        "refusal_rate": 0.1389
+      },
+      "safe/harassment": {
+        "n": 41,
+        "refusal_rate": 0.1463
+      },
+      "safe/harmful": {
+        "n": 106,
+        "refusal_rate": 0.1226
+      },
+      "safe/hate": {
+        "n": 54,
+        "refusal_rate": 0.1852
+      },
+      "safe/illegal": {
+        "n": 527,
+        "refusal_rate": 0.2049
+      },
+      "safe/privacy": {
+        "n": 199,
+        "refusal_rate": 0.1809
+      },
+      "safe/self-harm": {
+        "n": 63,
+        "refusal_rate": 0.3016
+      },
+      "safe/sexual": {
+        "n": 66,
+        "refusal_rate": 0.3939
+      },
+      "safe/unethical": {
+        "n": 125,
+        "refusal_rate": 0.176
+      },
+      "safe/violence": {
+        "n": 66,
+        "refusal_rate": 0.2879
+      }
+    }
+  },
+  {
+    "benchmark": "or_bench",
+    "model_id": "spin_seed0_qwen2-7b-instruct",
+    "refusal_definition": "full",
+    "arms": {
+      "orbench_safe": {
+        "n": 1319,
+        "refusal_rate": 0.2722,
+        "score_higher_is_better": 0.7278,
+        "full_refusal": 359,
+        "partial_refusal": 95,
+        "compliance": 865,
+        "empty": 0,
+        "per_item_file": "/gpfs/home2/aramautar1/fact-ai-group-23/reproduction/general_capabilities/per_item/orbench_safe__spin_seed0_qwen2-7b-instruct.parquet"
+      }
+    },
+    "by_group": {
+      "safe/deception": {
+        "n": 72,
+        "refusal_rate": 0.1944
+      },
+      "safe/harassment": {
+        "n": 41,
+        "refusal_rate": 0.1463
+      },
+      "safe/harmful": {
+        "n": 106,
+        "refusal_rate": 0.1604
+      },
+      "safe/hate": {
+        "n": 54,
+        "refusal_rate": 0.2963
+      },
+      "safe/illegal": {
+        "n": 527,
+        "refusal_rate": 0.2657
+      },
+      "safe/privacy": {
+        "n": 199,
+        "refusal_rate": 0.3317
+      },
+      "safe/self-harm": {
+        "n": 63,
+        "refusal_rate": 0.3333
+      },
+      "safe/sexual": {
+        "n": 66,
+        "refusal_rate": 0.3788
+      },
+      "safe/unethical": {
+        "n": 125,
+        "refusal_rate": 0.264
+      },
+      "safe/violence": {
+        "n": 66,
+        "refusal_rate": 0.3182
+      }
+    }
+  },
+  {
+    "benchmark": "or_bench",
+    "model_id": "origin_mistral-7b-instruct-v0.2",
+    "refusal_definition": "full",
+    "arms": {
+      "orbench_safe": {
+        "n": 1319,
+        "refusal_rate": 0.0174,
+        "score_higher_is_better": 0.9826,
+        "full_refusal": 23,
+        "partial_refusal": 26,
+        "compliance": 1270,
+        "empty": 0,
+        "per_item_file": "/gpfs/home2/aramautar1/fact-ai-group-23/reproduction/general_capabilities/per_item/orbench_safe__origin_mistral-7b-instruct-v0.2.parquet"
+      }
+    },
+    "by_group": {
+      "safe/deception": {
+        "n": 72,
+        "refusal_rate": 0.0139
+      },
+      "safe/harassment": {
+        "n": 41,
+        "refusal_rate": 0.0
+      },
+      "safe/harmful": {
+        "n": 106,
+        "refusal_rate": 0.0472
+      },
+      "safe/hate": {
+        "n": 54,
+        "refusal_rate": 0.0
+      },
+      "safe/illegal": {
+        "n": 527,
+        "refusal_rate": 0.019
+      },
+      "safe/privacy": {
+        "n": 199,
+        "refusal_rate": 0.0201
+      },
+      "safe/self-harm": {
+        "n": 63,
+        "refusal_rate": 0.0317
+      },
+      "safe/sexual": {
+        "n": 66,
+        "refusal_rate": 0.0
+      },
+      "safe/unethical": {
+        "n": 125,
+        "refusal_rate": 0.0
+      },
+      "safe/violence": {
+        "n": 66,
+        "refusal_rate": 0.0152
+      }
+    }
+  },
+  {
+    "benchmark": "or_bench",
+    "model_id": "spin_seed0_mistral-7b-instruct-v0.2",
+    "refusal_definition": "full",
+    "arms": {
+      "orbench_safe": {
+        "n": 1319,
+        "refusal_rate": 0.0136,
+        "score_higher_is_better": 0.9864,
+        "full_refusal": 18,
+        "partial_refusal": 36,
+        "compliance": 1265,
+        "empty": 0,
+        "per_item_file": "/gpfs/home2/aramautar1/fact-ai-group-23/reproduction/general_capabilities/per_item/orbench_safe__spin_seed0_mistral-7b-instruct-v0.2.parquet"
+      }
+    },
+    "by_group": {
+      "safe/deception": {
+        "n": 72,
+        "refusal_rate": 0.0
+      },
+      "safe/harassment": {
+        "n": 41,
+        "refusal_rate": 0.0
+      },
+      "safe/harmful": {
+        "n": 106,
+        "refusal_rate": 0.0377
+      },
+      "safe/hate": {
+        "n": 54,
+        "refusal_rate": 0.0185
+      },
+      "safe/illegal": {
+        "n": 527,
+        "refusal_rate": 0.0152
+      },
+      "safe/privacy": {
+        "n": 199,
+        "refusal_rate": 0.0201
+      },
+      "safe/self-harm": {
+        "n": 63,
+        "refusal_rate": 0.0
+      },
+      "safe/sexual": {
+        "n": 66,
+        "refusal_rate": 0.0
+      },
+      "safe/unethical": {
+        "n": 125,
+        "refusal_rate": 0.008
+      },
+      "safe/violence": {
+        "n": 66,
+        "refusal_rate": 0.0
+      }
+    }
+  },
+  {
+    "benchmark": "or_bench",
+    "model_id": "origin_vicuna-7b-v1.5",
+    "refusal_definition": "full",
+    "arms": {
+      "orbench_safe": {
+        "n": 1319,
+        "refusal_rate": 0.0053,
+        "score_higher_is_better": 0.9947,
+        "full_refusal": 7,
+        "partial_refusal": 20,
+        "compliance": 1071,
+        "empty": 221,
+        "per_item_file": "/gpfs/home2/aramautar1/fact-ai-group-23/reproduction/general_capabilities/per_item/orbench_safe__origin_vicuna-7b-v1.5.parquet"
+      }
+    },
+    "by_group": {
+      "safe/deception": {
+        "n": 72,
+        "refusal_rate": 0.0
+      },
+      "safe/harassment": {
+        "n": 41,
+        "refusal_rate": 0.0
+      },
+      "safe/harmful": {
+        "n": 106,
+        "refusal_rate": 0.0189
+      },
+      "safe/hate": {
+        "n": 54,
+        "refusal_rate": 0.0
+      },
+      "safe/illegal": {
+        "n": 527,
+        "refusal_rate": 0.0057
+      },
+      "safe/privacy": {
+        "n": 199,
+        "refusal_rate": 0.0
+      },
+      "safe/self-harm": {
+        "n": 63,
+        "refusal_rate": 0.0159
+      },
+      "safe/sexual": {
+        "n": 66,
+        "refusal_rate": 0.0
+      },
+      "safe/unethical": {
+        "n": 125,
+        "refusal_rate": 0.0
+      },
+      "safe/violence": {
+        "n": 66,
+        "refusal_rate": 0.0152
+      }
+    }
+  },
+  {
+    "benchmark": "or_bench",
+    "model_id": "spin_seed0_vicuna-7b-v1.5",
+    "refusal_definition": "full",
+    "arms": {
+      "orbench_safe": {
+        "n": 1319,
+        "refusal_rate": 0.0023,
+        "score_higher_is_better": 0.9977,
+        "full_refusal": 3,
+        "partial_refusal": 23,
+        "compliance": 1084,
+        "empty": 209,
+        "per_item_file": "/gpfs/home2/aramautar1/fact-ai-group-23/reproduction/general_capabilities/per_item/orbench_safe__spin_seed0_vicuna-7b-v1.5.parquet"
+      }
+    },
+    "by_group": {
+      "safe/deception": {
+        "n": 72,
+        "refusal_rate": 0.0139
+      },
+      "safe/harassment": {
+        "n": 41,
+        "refusal_rate": 0.0
+      },
+      "safe/harmful": {
+        "n": 106,
+        "refusal_rate": 0.0
+      },
+      "safe/hate": {
+        "n": 54,
+        "refusal_rate": 0.0
+      },
+      "safe/illegal": {
+        "n": 527,
+        "refusal_rate": 0.0019
+      },
+      "safe/privacy": {
+        "n": 199,
+        "refusal_rate": 0.0
+      },
+      "safe/self-harm": {
+        "n": 63,
+        "refusal_rate": 0.0159
+      },
+      "safe/sexual": {
+        "n": 66,
+        "refusal_rate": 0.0
+      },
+      "safe/unethical": {
+        "n": 125,
+        "refusal_rate": 0.0
+      },
+      "safe/violence": {
+        "n": 66,
+        "refusal_rate": 0.0
+      }
+    }
+  }
+]

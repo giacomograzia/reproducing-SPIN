@@ -1,0 +1,32 @@
+#!/bin/bash
+
+#SBATCH --partition=staging
+#SBATCH --job-name=Refusal_ScoreORBench
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --time=00:10:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/refusal/outputs/Refusal_ScoreORBench_%A.out
+
+# Phase B: score OR-Bench generations into per-item parquet. No bootstrap --
+# n=1319 aggregate is comparable in scale to Winogrande (~1267), so the raw
+# rate is reported directly, consistent with how the general-capabilities
+# benchmarks are being reported in this write-up. CPU-only.
+#
+# Qwen + Mistral only: Vicuna's OR-Bench generations show the same raw-prompting
+# failure mode diagnosed on XSTest (nobody/everyone/hopefully-style non-answers
+# instead of real responses), so scoring them would not produce a meaningful
+# number.
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+source activate FACT
+
+set -euo pipefail
+
+cd $HOME/fact-ai-group-23/reproduction/general_capabilities
+
+python score_refusal.py --benchmarks or_bench \
+  --model_ids origin_qwen2-7b-instruct spin_seed0_qwen2-7b-instruct \
+              origin_mistral-7b-instruct-v0.2 spin_seed0_mistral-7b-instruct-v0.2

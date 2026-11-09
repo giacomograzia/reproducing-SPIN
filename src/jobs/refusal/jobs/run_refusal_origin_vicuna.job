@@ -1,0 +1,74 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Refusal_Origin_Vicuna
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=01:00:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/refusal/outputs/Refusal_Origin_Vicuna_%A.out
+
+# Origin baseline for the over-refusal comparison (XSTest primary, OR-Bench
+# generated for the deferred Phase B analysis).
+#
+# No seed array: origin has no training step and decodes greedily, so it is
+# deterministic (verified directly for Qwen and Mistral, whose awareness rates
+# are byte-identical across seeds 0/1/2). Vicuna's own seeds 1/2 logs are empty
+# -- its original multiseed run was the one that died on the HF cache race --
+# so only its seed 0 value (0.6536/0.4734, from the 26120643 re-run) is
+# confirmed. That is what this job reproduces.
+#
+# Structure mirrors run_origin_vicuna_multiseed.job (same env, same HF cache
+# pre-warm, same eval_origin.py entry point); the only additions are the three
+# --eval_refusal flags. The salad eval still runs, which is deliberate: it
+# reproduces the awareness numbers on the same process/checkpoint that produces
+# the refusal numbers, so the two are directly comparable.
+#
+# Budget: the historical origin multiseed runs took ~17 min (dominated by
+# MD-Judge scoring 2822 items); refusal generation adds ~2 min for 1769 prompts
+# (vLLM measured at ~4500 tok/s on this partition). 1h leaves ample headroom.
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+SEED=0
+CATEGORY="origin"
+MODEL_LABEL="vicuna-7b-v1.5"
+MODEL_PATH="lmsys/vicuna-7b-v1.5"
+
+REFUSAL_OUT_DIR="$HOME/fact-ai-group-23/reproduction/general_capabilities/refusal_generations"
+LOGDIR="$HOME/fact-ai-group-23/src/multiseed_logs/refusal_origin_vicuna"
+mkdir -p "${REFUSAL_OUT_DIR}" "${LOGDIR}"
+
+# Pre-warm the HF cache under a lock, matching the convention in the existing
+# multiseed jobs (concurrent tasks racing on the same not-yet-cached blob is
+# what took down the original Origin Vicuna run).
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_${MODEL_LABEL}"
+(
+  flock -x 200
+  python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${LOCKFILE}"
+echo "[INFO] $(date '+%H:%M:%S') cache pre-warm complete for ${MODEL_PATH}"
+
+srun python eval_origin.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --seed ${SEED} \
+  --eval_refusal \
+  --refusal_out_dir "${REFUSAL_OUT_DIR}" \
+  --category "${CATEGORY}" \
+| tee "${LOGDIR}/refusal_origin_seed${SEED}.log"
+
+echo "[INFO] $(date '+%H:%M:%S') DONE. Generations: ${REFUSAL_OUT_DIR}/*__${CATEGORY}_${MODEL_LABEL}.jsonl"

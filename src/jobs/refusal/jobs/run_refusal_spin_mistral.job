@@ -1,0 +1,127 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --job-name=Refusal_Spin_Mistral
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=02:00:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/refusal/outputs/Refusal_Spin_Mistral_%A.out
+
+# SPIN arm of the over-refusal comparison (XSTest primary, OR-Bench generated
+# for the deferred Phase B analysis).
+#
+# WHY THIS RE-DERIVES SPIN INSTEAD OF LOADING A CHECKPOINT: no SPIN checkpoint
+# exists anywhere on disk. main.py saves to --model_dir, and every existing
+# multiseed job points that at ${TMPDIR}/spin_models/seed_N -- job-private
+# scratch that is purged when the job ends. So the importance scores and the
+# suppression must be recomputed here, exactly as run_spin_mistral_multiseed.job
+# does, and the refusal eval must run inside this same job while the checkpoint
+# still exists. This is also why the generations (not the weights) are the
+# durable artifact: re-scoring later must never require another GPU run.
+#
+# SINGLE SEED (0), not an array: uncertainty for this comparison comes from the
+# paired item-level bootstrap over prompts (see bootstrap_ci.py's docstring),
+# not from seed replication. Seed 0 specifically because SPIN's awareness gain
+# varies across seeds (Mistral fairness: +0.021/+0.024/+0.024, privacy:
+# +0.047/+0.035/+0.055 for seeds 0/1/2) and seed 0 has a clean non-degenerate
+# gain on all three models. SEED is left as a
+# variable so adding seeds later is a one-line change to `#SBATCH --array=0-2`
+# plus SEED=$SLURM_ARRAY_TASK_ID.
+#
+# DETERMINISM CHECK (gates the whole experiment): the awareness rates this job
+# prints must reproduce the already-logged seed-0 values in
+# src/multiseed_logs/spin_mistral/spin_eval_seed0.log -- fairness 0.7104,
+# privacy 0.7626. If they don't, SPIN is not seed-reproducible and the paired
+# origin-vs-SPIN comparison is invalid; check this before reading any refusal
+# number.
+#
+# Budget: historical SPIN multiseed runs took 20-37 min (3x importance scores +
+# suppression + ppl + save + the salad eval); refusal generation adds ~2 min.
+
+set -euo pipefail
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+cd $HOME/fact-ai-group-23/src/
+
+source activate FACT
+
+export HF_HOME=/scratch-shared/aramautar1/hf_cache
+
+SEED=0
+CATEGORY="spin_seed${SEED}"
+MODEL_LABEL="mistral-7b-instruct-v0.2"
+MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+NSAMPLES=128
+
+SCOREDIR="${TMPDIR}/significance_score/seed_${SEED}"
+MODELDIR="${TMPDIR}/spin_models/seed_${SEED}"
+
+REFUSAL_OUT_DIR="$HOME/fact-ai-group-23/reproduction/general_capabilities/refusal_generations"
+LOGDIR="$HOME/fact-ai-group-23/src/multiseed_logs/refusal_spin_mistral"
+mkdir -p "${REFUSAL_OUT_DIR}" "${LOGDIR}"
+
+log() { echo "[$(date '+%H:%M:%S')] seed=${SEED} $*"; }
+
+LOCKFILE="/scratch-shared/${USER}/.hf_cache_lock_${MODEL_LABEL}"
+(
+  flock -x 200
+  python -c "
+from huggingface_hub import snapshot_download
+snapshot_download('${MODEL_PATH}')
+"
+) 200>"${LOCKFILE}"
+log "Cache pre-warm complete for ${MODEL_PATH}"
+
+# 1) Importance scores -- identical invocations to run_spin_mistral_multiseed.job,
+#    since the whole point is to reproduce that job's seed-0 checkpoint.
+log "Computing Alpaca general importance scores"
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset alpaca_cleaned_no_safety \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+log "Computing privacy importance scores"
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset beaver_train330k_privacy_safe_1k \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+log "Computing fairness importance scores"
+srun python compute_importance_score.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset beaver_train330k_fairness_safe_1k \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR}
+
+# 2) SPIN + salad awareness eval + over-refusal eval, all on one checkpoint.
+log "Running SPIN + awareness eval + over-refusal eval"
+srun python main.py \
+  --model "${MODEL_LABEL}" \
+  --model_path "${MODEL_PATH}" \
+  --dataset1 beaver_train330k_privacy_safe_1k \
+  --dataset2 beaver_train330k_fairness_safe_1k \
+  --target_module mlp \
+  --p 5e-7 \
+  --q 5e-7 \
+  --nsamples ${NSAMPLES} \
+  --seed ${SEED} \
+  --score_dir ${SCOREDIR} \
+  --model_dir ${MODELDIR} \
+  --eval_refusal \
+  --refusal_out_dir "${REFUSAL_OUT_DIR}" \
+  --category "${CATEGORY}" \
+| tee "${LOGDIR}/refusal_spin_seed${SEED}.log"
+
+log "DONE. Generations: ${REFUSAL_OUT_DIR}/*__${CATEGORY}_${MODEL_LABEL}.jsonl"

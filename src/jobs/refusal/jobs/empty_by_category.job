@@ -1,0 +1,46 @@
+#!/bin/bash
+
+#SBATCH --partition=staging
+#SBATCH --job-name=Refusal_EmptyByCategory
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --time=00:10:00
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/jobs/refusal/outputs/Refusal_EmptyByCategory_%A.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+source activate FACT
+set -euo pipefail
+cd $HOME/fact-ai-group-23/reproduction/general_capabilities
+
+python3 -c "
+import json
+from collections import defaultdict
+
+models = [
+    ('Qwen2-7B-Instruct', 'origin_qwen2-7b-instruct', 'spin_seed0_qwen2-7b-instruct'),
+    ('Mistral-7B-Instruct-v0.2', 'origin_mistral-7b-instruct-v0.2', 'spin_seed0_mistral-7b-instruct-v0.2'),
+    ('Vicuna-7b-v1.5', 'origin_vicuna-7b-v1.5', 'spin_seed0_vicuna-7b-v1.5'),
+]
+
+def empty_by_cat(model_id):
+    n = defaultdict(int)
+    empty = defaultdict(int)
+    for line in open(f'refusal_generations/or_bench__{model_id}.jsonl'):
+        r = json.loads(line)
+        cat = r['group']
+        n[cat] += 1
+        if not r['response'].strip():
+            empty[cat] += 1
+    return n, empty
+
+for name, o_id, s_id in models:
+    print(f'=== {name} ===')
+    n_o, e_o = empty_by_cat(o_id)
+    n_s, e_s = empty_by_cat(s_id)
+    print(f'{\"category\":14s} {\"n\":>5s} {\"empty(origin)\":>14s} {\"empty(spin)\":>13s}')
+    for cat in sorted(n_o):
+        print(f'{cat:14s} {n_o[cat]:5d} {e_o[cat]:6d} ({100*e_o[cat]/n_o[cat]:5.1f}%) {e_s[cat]:6d} ({100*e_s[cat]/n_s[cat]:5.1f}%)')
+    print()
+"
