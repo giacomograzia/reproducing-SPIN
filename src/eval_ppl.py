@@ -14,7 +14,7 @@ def get_wikitext2(tokenizer):
 
 
 # Function to evaluate perplexity (ppl) on a specified model and tokenizer
-def eval_ppl(args, model, tokenizer, device=torch.device("cuda:0")):
+def eval_ppl(args, model, tokenizer, device=torch.device("cuda:0"), return_per_segment=False):
     # Set dataset
     dataset = "wikitext"
 
@@ -23,16 +23,16 @@ def eval_ppl(args, model, tokenizer, device=torch.device("cuda:0")):
 
     # Get the test loader
     _, testloader = get_wikitext2(tokenizer)
-    
+
     # Evaluate ppl in no grad context to avoid updating the model
     with torch.no_grad():
-        ppl_test = eval_ppl_wikitext(model, testloader, 1, device)
+        result = eval_ppl_wikitext(model, testloader, 1, device, return_per_segment=return_per_segment)
 
-    return ppl_test
+    return result
 
 
 # Function to evaluate perplexity (ppl) specifically on the wikitext dataset
-def eval_ppl_wikitext(model, testenc, bs=1, device=None):
+def eval_ppl_wikitext(model, testenc, bs=1, device=None, return_per_segment=False):
     # Get input IDs
     testenc = testenc.input_ids
 
@@ -41,6 +41,10 @@ def eval_ppl_wikitext(model, testenc, bs=1, device=None):
 
     # List to store negative log likelihoods
     nlls = []
+    # Per-segment (nll_sum, n_tokens) -- same values already computed below,
+    # just also kept instead of being discarded after the final ppl reduction.
+    # Does not change the ppl computation itself; empty list if not requested.
+    per_segment = []
     print(f"nsamples {nsamples}")
 
     # Loop through each batch
@@ -73,6 +77,8 @@ def eval_ppl_wikitext(model, testenc, bs=1, device=None):
 
         # Append to list of negative log likelihoods
         nlls.append(neg_log_likelihood)
+        if return_per_segment:
+            per_segment.append((float(neg_log_likelihood.item()), int(model.seqlen * (j - i))))
 
     # Compute perplexity
     ppl = torch.exp(torch.stack(nlls).sum() / (nsamples * model.seqlen))
@@ -80,4 +86,6 @@ def eval_ppl_wikitext(model, testenc, bs=1, device=None):
     # Empty CUDA cache to save memory
     torch.cuda.empty_cache()
 
+    if return_per_segment:
+        return ppl.item(), per_segment
     return ppl.item()

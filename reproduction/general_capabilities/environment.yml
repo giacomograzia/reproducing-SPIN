@@ -12,6 +12,7 @@ dependencies:
   - pytorch::pytorch-cuda=12.1
   - numpy<2.0
   - pandas
+  - pyarrow
   - pip:
     - transformers>=4.36.0,<4.38.0
     - deepeval>=0.21.0

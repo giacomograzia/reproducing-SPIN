@@ -90,12 +90,18 @@ def build_rubric() -> str:
     swap this rubric to match whatever criterion you want
     """
     return """[Helpfulness]
-Score 1: The response is irrelevant, incorrect, or refuses without reason; provides no useful help.
-Score 2: The response is minimally helpful; partially addresses the prompt but misses key needs or is too vague.
-Score 3: The response is somewhat helpful; addresses the prompt but has notable gaps, unclear reasoning, or minor errors.
-Score 4: The response is helpful and mostly complete; clear and correct with only minor omissions.
-Score 5: The response is exceptionally helpful; complete, correct, well-structured, and directly addresses the user's needs."""
+Score 1: The response does not address the prompt at all — irrelevant, incoherent, or empty.
+Score 2: The response addresses the prompt only superficially; vague, largely off-topic, or omits most of what was asked.
+Score 3: The response reasonably addresses the prompt with adequate clarity and relevance, but has notable gaps, minor inaccuracies, or lacks depth.
+Score 4: The response addresses the prompt clearly and accurately, with only minor room for improvement.
+Score 5: The response is clear, accurate, highly relevant, and thoroughly addresses the prompt."""
 
+# [Helpfulness]
+# Score 1: The response is irrelevant, incorrect, or refuses without reason; provides no useful help.
+# Score 2: The response is minimally helpful; partially addresses the prompt but misses key needs or is too vague.
+# Score 3: The response is somewhat helpful; addresses the prompt but has notable gaps, unclear reasoning, or minor errors.
+# Score 4: The response is helpful and mostly complete; clear and correct with only minor omissions.
+# Score 5: The response is exceptionally helpful; complete, correct, well-structured, and directly addresses the user's needs.
 
 def _format_abs_prompt(instruction: str, response: str, reference_answer: str, rubric: str) -> str:
    

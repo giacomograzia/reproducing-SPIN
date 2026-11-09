@@ -21,15 +21,35 @@ seed = 0
 if len(ds_h4) < N_TRAIN:
     raise ValueError(f"Not enough rows with helpfulness==4. Found {len(ds_h4)}, need {N_TRAIN}.")
 
-# Deterministic random split.
+# Split by prompt group, not by row. HelpSteer has multiple response rows
+# per prompt (different responses can each be independently rated
+# helpfulness==4), so splitting by row index directly would let the same
+# prompt land on both sides. Group rows by prompt and assign whole groups
+# to train/test, so every response to a given prompt stays together and no
+# response data is discarded.
+all_prompts = ds_h4["prompt"]
+rows_by_prompt = {}
+for i, p in enumerate(all_prompts):
+    rows_by_prompt.setdefault(p, []).append(i)
+unique_prompts = list(rows_by_prompt.keys())
+
+if len(unique_prompts) < N_TRAIN:
+    raise ValueError(f"Not enough unique prompts with helpfulness==4. Found {len(unique_prompts)}, need {N_TRAIN}.")
+
 random.seed(seed)
-all_idx = list(range(len(ds_h4)))
-train_idx = set(random.sample(all_idx, N_TRAIN))
-test_idx = [i for i in all_idx if i not in train_idx]
-train_idx = sorted(list(train_idx))
+train_prompts = set(random.sample(unique_prompts, N_TRAIN))
+
+train_idx = sorted(rows_by_prompt[p][0] for p in train_prompts)
+test_idx = sorted(rows_by_prompt[p][0] for p in unique_prompts if p not in train_prompts)
 
 ds_train = ds_h4.select(train_idx)
 ds_test = ds_h4.select(test_idx)
+
+# Guard against regressions: train and test must share no prompts.
+train_prompt_set = set(ds_train["prompt"])
+test_prompt_set = set(ds_test["prompt"])
+overlap = train_prompt_set & test_prompt_set
+assert not overlap, f"Data leakage: {len(overlap)} prompts appear in both train and test."
 
 # Keep only prompt/response columns for downstream use.
 keep_cols = ["prompt", "response"]

@@ -25,10 +25,15 @@ COLORS = {
     'DoRA': '#E9B372',     # Orange/Tan
     'ReFT': '#BFD8A5',     # Light Green
     'SPIN': '#F29A8F',     # Coral/Salmon
+    'SPIN (Unrelated)': '#7FB3B0',  # Teal
 }
 
 # Methods to plot (excluding "Origin" as it's shown as a baseline line)
-METHODS = ['FFT', 'LoRA', 'DoRA', 'SPIN']
+METHODS = ['FFT', 'LoRA', 'DoRA', 'SPIN', 'SPIN (Unrelated)']
+
+def wrap_label(method):
+    """Break a long method name onto two lines so x-tick labels don't overlap."""
+    return method.replace(' (', '\n(')
 
 def extract_values(metric_type):
     """
@@ -88,7 +93,7 @@ def plot_bar_charts():
     spin_clean_privacy = extract_spin_clean('privacy')
     
     # Create figure with 2x3 subplots (2 rows: fairness and privacy, 3 cols: Qwen, Mistral, Vicuna)
-    fig, axes = plt.subplots(2, 3, figsize=(11, 6))
+    fig, axes = plt.subplots(2, 3, figsize=(13.2, 7.2))
     
     # ============= Fairness Awareness (Top Row) =============
 
@@ -124,7 +129,7 @@ def plot_bar_charts():
     ax.set_title('Qwen2-7B-Instruct', fontsize=14, pad=10)
     ax.set_ylim(0, max(values + [origin_fairness['Qwen'], spin_clean_fairness['Qwen']]) + 0.08)
     ax.set_xticks(range(len(methods_list)))
-    ax.set_xticklabels(methods_list, fontsize=12)
+    ax.set_xticklabels([wrap_label(m) for m in methods_list], fontsize=12)
     ax.set_xlabel('Method', fontsize=13)
     ax.grid(axis='y', alpha=0.35, linestyle='-')
     ax.set_axisbelow(True)
@@ -160,7 +165,7 @@ def plot_bar_charts():
     ax.set_title('Mistral-7B-Instruct-v0.2', fontsize=14, pad=10)
     ax.set_ylim(0, max(values + [origin_fairness['Mistral'], spin_clean_fairness['Mistral']]) + 0.08)
     ax.set_xticks(range(len(methods_list)))
-    ax.set_xticklabels(methods_list, fontsize=12)
+    ax.set_xticklabels([wrap_label(m) for m in methods_list], fontsize=12)
     ax.grid(axis='y', alpha=0.35, linestyle='-')
     ax.set_axisbelow(True)
     ax.set_ylabel('Awareness of Fairness', fontsize=13)
@@ -197,7 +202,7 @@ def plot_bar_charts():
     ax.set_title('Vicuna-7B-v1.5', fontsize=14, pad=10)
     ax.set_ylim(0, max(values + [origin_fairness['Vicuna'], spin_clean_fairness['Vicuna']]) + 0.08)
     ax.set_xticks(range(len(methods_list)))
-    ax.set_xticklabels(methods_list, fontsize=12)
+    ax.set_xticklabels([wrap_label(m) for m in methods_list], fontsize=12)
     ax.grid(axis='y', alpha=0.35, linestyle='-')
     ax.set_axisbelow(True)
     ax.set_ylabel('Awareness of Fairness', fontsize=13)
@@ -237,7 +242,7 @@ def plot_bar_charts():
     ax.set_xlabel('Method', fontsize=13)
     ax.set_ylim(0, max(values + [origin_privacy['Qwen'], spin_clean_privacy['Qwen']]) + 0.08)
     ax.set_xticks(range(len(methods_list)))
-    ax.set_xticklabels(methods_list, fontsize=12)
+    ax.set_xticklabels([wrap_label(m) for m in methods_list], fontsize=12)
     ax.grid(axis='y', alpha=0.35, linestyle='-')
     ax.set_axisbelow(True)
     ax.set_title('Qwen2-7B-Instruct', fontsize=14, pad=10)
@@ -274,7 +279,7 @@ def plot_bar_charts():
     ax.set_xlabel('Method', fontsize=13)
     ax.set_ylim(0, max(values + [origin_privacy['Mistral'], spin_clean_privacy['Mistral']]) + 0.08)
     ax.set_xticks(range(len(methods_list)))
-    ax.set_xticklabels(methods_list, fontsize=12)
+    ax.set_xticklabels([wrap_label(m) for m in methods_list], fontsize=12)
     ax.grid(axis='y', alpha=0.35, linestyle='-')
     ax.set_axisbelow(True)
     ax.set_title('Mistral-7B-Instruct-v0.2', fontsize=14, pad=10)
@@ -311,7 +316,7 @@ def plot_bar_charts():
     ax.set_xlabel('Method', fontsize=13)
     ax.set_ylim(0, max(values + [origin_privacy['Vicuna'], spin_clean_privacy['Vicuna']]) + 0.08)
     ax.set_xticks(range(len(methods_list)))
-    ax.set_xticklabels(methods_list, fontsize=12)
+    ax.set_xticklabels([wrap_label(m) for m in methods_list], fontsize=12)
     ax.grid(axis='y', alpha=0.35, linestyle='-')
     ax.set_axisbelow(True)
     ax.set_title('Vicuna-7B-v1.5', fontsize=14, pad=10)

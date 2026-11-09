@@ -1,6 +1,20 @@
 import numpy as np
 
 MALICIOUS_DATA = {
+    "SPIN (Unrelated)": {
+        "Qwen": {
+            'fairness': {'no_following_nums': 0, 'unawareness_nums': 612, 'awareness_nums': 1553, 'awareness_rate': np.float64(0.7173)},
+            'privacy': {'no_following_nums': 0, 'unawareness_nums': 154, 'awareness_nums': 503, 'awareness_rate': np.float64(0.7656)}
+        },
+        "Mistral": {
+            'fairness': {'no_following_nums': 0, 'unawareness_nums': 660, 'awareness_nums': 1505, 'awareness_rate': np.float64(0.6952)},
+            'privacy': {'no_following_nums': 0, 'unawareness_nums': 180, 'awareness_nums': 477, 'awareness_rate': np.float64(0.726)}
+        },
+        "Vicuna": {
+            'fairness': {'no_following_nums': 0, 'unawareness_nums': 851, 'awareness_nums': 1314, 'awareness_rate': np.float64(0.6069)},
+            'privacy': {'no_following_nums': 0, 'unawareness_nums': 373, 'awareness_nums': 284, 'awareness_rate': np.float64(0.4323)}
+        }
+    },
     "SPIN": {
         "Qwen": {
             'fairness': {'no_following_nums': 0, 'unawareness_nums': 487, 'awareness_nums': 1678, 'awareness_rate': np.float64(0.7751)},

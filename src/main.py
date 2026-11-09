@@ -47,10 +47,31 @@ def main():
     parser.add_argument("--dataset_nsamples", type=int, default=None) # Reproducibility study: added for limited data experiment 
     parser.add_argument("--locating_method", type=str, default="importance",
                     choices=["importance", "random", "wanda", "sparsegpt", "grad_x_act"]) # Reproducibility study: added for neuron locating
+    # Reproducibility study: opt-in over-refusal evaluation (XSTest/OR-Bench).
+    # Defaults off, so leaving these unset reproduces this script's original
+    # behaviour exactly.
+    parser.add_argument("--eval_refusal", action="store_true",
+                    help="Additionally run the over-refusal benchmarks on the SPIN'd model.")
+    parser.add_argument("--refusal_out_dir", type=str, default="",
+                    help="Directory for the refusal generation JSONLs (required with --eval_refusal).")
+    # Item-level pairing for Table 1 significance testing: when set, persists
+    # one row per prompt (prompt, model_response, label, category) to
+    # <labels_out_dir>/{fairness,privacy}_labels.csv, matching eval_origin.py's
+    # flag of the same name -- see eval_salad.py:eval_mdjudge. Off by default.
+    parser.add_argument("--labels_out_dir", type=str, default="",
+                    help="If set, write per-prompt fairness/privacy labels here for item-level pairing.")
+    parser.add_argument("--category", type=str, default="",
+                    help="Short label (e.g. spin_seed0) folded into the refusal output filenames.")
 
     args = parser.parse_args()
     if args.dataset_nsamples is None:
         args.dataset_nsamples = args.nsamples
+    # Validated up front: the refusal step runs at the very END of this script,
+    # after SPIN derivation and the full salad eval (~30 min of GPU), so a
+    # missing output dir must fail in the first second rather than discard all
+    # of that work.
+    if args.eval_refusal and not args.refusal_out_dir:
+        parser.error("--eval_refusal requires --refusal_out_dir")
     print(args)
 
     # Setting seeds for reproducibility
@@ -117,15 +138,38 @@ def main():
     trust_results['fairness'] = eval_fairness_and_privacy_mdjudge(
         category='fairness',
         vllm_model=vllm_model,
-        eval_model=eval_model
+        eval_model=eval_model,
+        labels_out_dir=args.labels_out_dir or None,
     )
 
     ## ================== eval privacy ==================
     trust_results['privacy'] = eval_fairness_and_privacy_mdjudge(
         category='privacy',
         vllm_model=vllm_model,
-        eval_model=eval_model
+        eval_model=eval_model,
+        labels_out_dir=args.labels_out_dir or None,
     )
+
+    ## ================== eval over-refusal ==================
+    # Reproducibility study: measures refusal on benign-but-scary prompts, to
+    # test whether the awareness gains above reflect better discrimination or
+    # just a higher propensity to refuse. Runs on the SAME vllm_model (i.e. the
+    # same SPIN checkpoint) that produced the awareness numbers -- that shared
+    # checkpoint is what makes the two sets of numbers comparable, and it is why
+    # this lives here rather than in a separate job (the checkpoint is written
+    # to $TMPDIR and does not outlive this process).
+    refusal_results = None
+    if args.eval_refusal:
+        # Imported here rather than at module scope so that this file's original
+        # code path cannot be affected by the new module in any way.
+        from eval_refusal import eval_refusal_benchmarks
+
+        model_id = f"{args.category}_{args.model}" if args.category else args.model
+        refusal_results = eval_refusal_benchmarks(
+            vllm_model=vllm_model,
+            out_dir=args.refusal_out_dir,
+            model_id=model_id,
+        )
 
     print('===================== params =====================')
     print(f'[model] {args.model}')
@@ -134,6 +178,12 @@ def main():
     print(f'[ratio_q] {args.q}')
     print('===================== trustworthy results here =====================')
     print(trust_results)
+
+    # Only printed when --eval_refusal was passed; existing jobs' output is
+    # byte-identical to before.
+    if refusal_results is not None:
+        print('===================== over-refusal results here =====================')
+        print(refusal_results)
 
 
 if __name__ == "__main__":

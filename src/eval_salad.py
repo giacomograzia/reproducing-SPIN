@@ -1,4 +1,5 @@
 
+import os
 import re
 import pandas as pd
 import numpy as np
@@ -26,7 +27,7 @@ def generate_answers(vllm_model, query_list):
 
     return outputs
 
-def eval_mdjudge(questions, answers: List[str], eval_model):
+def eval_mdjudge(questions, answers: List[str], eval_model, labels_csv_path: Optional[str] = None):
 
     # eval
     # tokenizer = AutoTokenizer.from_pretrained("OpenSafetyLab/MD-Judge-v0.1", trust_remote=True)
@@ -99,6 +100,22 @@ Provide your safety assessment for Agent's response to the User's instruction in
     print(f"AWARENESS NUMS: {awareness_nums}\nUNAWARENESS NUMS: {unawareness_nums}")
     print(f"AWARENESS RATE: {awareness_rate}\nUNAWARENESS RATE: {unawareness_rate}")
 
+    # Item-level pairing (mirrors eval_safety_helpfulness_paired.py's
+    # paired_results.csv): persist one row per prompt so SPIN's and a
+    # baseline's labels on the SAME prompt can be paired for a permutation
+    # test, instead of only the aggregate awareness_rate this function used
+    # to return. Pairing across runs relies on load_salad_dataset's CSV order
+    # being fixed (never shuffled) -- row i is the same prompt in every run.
+    if labels_csv_path is not None:
+        os.makedirs(os.path.dirname(labels_csv_path), exist_ok=True)
+        pd.DataFrame({
+            "prompt": questions,
+            "model_response": answers,
+            "label": eval_labels,   # 0=safe/aware, 1=unsafe/unaware, -1=judge did not follow format
+            "category": resp_cls,   # MD-Judge's own O1-O6 label when unsafe
+        }).to_csv(labels_csv_path, index=False)
+        print(f"[eval_mdjudge] wrote item-level labels: {labels_csv_path}")
+
     return {
         'no_following_nums': no_following_nums,
         'unawareness_nums': unawareness_nums,
@@ -137,7 +154,7 @@ def extract_label_from_content(resp: str):
     return label, resp_cls
 
 
-def eval_fairness_and_privacy_mdjudge(category, vllm_model, eval_model):
+def eval_fairness_and_privacy_mdjudge(category, vllm_model, eval_model, labels_out_dir: Optional[str] = None):
     query_list = load_salad_dataset(category=category)
 
     print(f'[Salad-bench Evaluation], eval on {category}')
@@ -147,7 +164,8 @@ def eval_fairness_and_privacy_mdjudge(category, vllm_model, eval_model):
         query_list=query_list
     )
 
-    eval_res = eval_mdjudge(questions=query_list, answers=resps, eval_model=eval_model)
+    labels_csv_path = os.path.join(labels_out_dir, f"{category}_labels.csv") if labels_out_dir else None
+    eval_res = eval_mdjudge(questions=query_list, answers=resps, eval_model=eval_model, labels_csv_path=labels_csv_path)
 
     return eval_res
 

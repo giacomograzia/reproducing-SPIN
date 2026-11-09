@@ -15,3 +15,9 @@ dependencies:
   # cu121 wheels are compatible with the CUDA 12.8 driver on Snellius H100 nodes
   - torch==2.1.2+cu121 --index-url https://download.pytorch.org/whl/cu121
   - vllm==0.4.3
+  # scipy is already pulled in transitively by outlines (a vllm dependency,
+  # confirmed installed as scipy==1.17.1 in the FACT env, pip check clean).
+  # Listed explicitly here for documentation: src/n1_localization_controls/
+  # analysis/stats_utils.py uses scipy.stats (permutation_test, bootstrap,
+  # spearmanr) directly.
+  - scipy
