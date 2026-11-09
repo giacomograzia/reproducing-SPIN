@@ -745,5 +745,54 @@
       "prompt": "content"
     },
     "folder": "python"
+  },
+  "beaver_train330k_privacy_safe_1k": {
+    "file_name": "beaver_train330k_privacy_safe_1k.csv",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "beaver_train330k_fairness_safe_1k": {
+    "file_name": "beaver_train330k_fairness_safe_1k.csv",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "alpaca_cleaned_no_safety": {
+    "file_name": "alpaca_cleaned_no_safety_train.csv",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "safety": {
+    "file_name": "safety_train.csv",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "helpfulness_train": {
+    "file_name": "helpfulness_train.csv",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "safety_test": {
+    "file_name": "safety_test.csv",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
+  },
+  "helpfulness_test": {
+    "file_name": "helpfulness_test.csv",
+    "columns": {
+      "prompt": "prompt",
+      "response": "response"
+    }
   }
 }
