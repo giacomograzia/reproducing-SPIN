@@ -21,7 +21,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --time=00:15:00
 #SBATCH --job-name=Aggregate_MultiSeed_Table1
-#SBATCH --output=Aggregate_MultiSeed_Table1_%A.out
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/figures_and_tables/baselines-table-1/Aggregate_MultiSeed_Table1_%A.out
 
 module purge
 module load 2025

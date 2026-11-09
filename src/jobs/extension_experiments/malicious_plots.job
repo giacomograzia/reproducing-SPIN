@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --time=00:05:00
 #SBATCH --job-name=Malicious_Plots
-#SBATCH --output=Malicious_Plots_%A.out
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/src/output_spin/Malicious_Plots_%A.out
 
 module purge
 module load 2025
@@ -13,4 +13,4 @@ module load Anaconda3/2025.06-1
 
 source activate FACT
 
-MPLBACKEND=Agg python /home/aramautar1/fact-ai-group-23/reproduction/artifacts/malicious-data/malicious-plots.py
+MPLBACKEND=Agg python /home/aramautar1/fact-ai-group-23/reproduction/figures_and_tables/malicious-data/malicious-plots.py
