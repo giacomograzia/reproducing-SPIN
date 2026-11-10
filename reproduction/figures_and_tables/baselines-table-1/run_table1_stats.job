@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# Rebuild every Table 1 artifact from the per-seed eval logs and item-level labels:
+#   results_multiseed.py          mean +- SD per method/model (Table 1)
+#   item_level_stats.csv          SPIN vs each baseline, paired bootstrap + Holm (Table 1 delta table)
+#   item_level_vs_origin_stats.csv  each method vs origin, paired bootstrap + Holm
+# The previous versions are kept as *.before_<jobid> so changes can be diffed.
+
+#SBATCH --partition=rome
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=00:30:00
+#SBATCH --job-name=Table1_Stats
+#SBATCH --output=/home/aramautar1/fact-ai-group-23/reproduction/figures_and_tables/baselines-table-1/table1_stats_%j.out
+
+set -euo pipefail
+trap 'echo "[ERROR] failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+CONDA_ROOT="/sw/arch/RHEL9/EB_production/2025/software/Anaconda3/2025.06-1"
+source "$CONDA_ROOT/etc/profile.d/conda.sh"
+
+cd "$HOME/fact-ai-group-23/reproduction/figures_and_tables/baselines-table-1/"
+export SCRATCH_SHARED="/scratch-shared/$USER"
+
+for f in results_multiseed.py item_level_stats.csv item_level_vs_origin_stats.csv; do
+  cp -p "$f" "$f.before_${SLURM_JOB_ID}"
+done
+
+conda run -n FACT --no-capture-output python aggregate_multiseed_results.py --seeds 0 1 2 --out results_multiseed.py
+conda run -n FACT --no-capture-output python item_level_stats.py
+conda run -n FACT --no-capture-output python item_level_vs_origin_stats.py
+
+echo "[DONE] Table 1 artifacts rebuilt"
