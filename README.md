@@ -30,6 +30,56 @@ conda activate FACT
 NOTE: You can replace conda with micromamba or whichever version you have locally.
 
 
+## 🚩 Our Reproduction Results
+
+All values are awareness rates (higher is better). Unless noted, results are means over three seeds. Full details, statistics and caveats are in the [report](https://openreview.net/forum?id=7nKvpj17oI).
+
+**SPIN improves fairness and privacy together for Qwen2 and Mistral, but not for Vicuna. SPIN has higher fairness awareness than every SFT baseline on all three models.**
+
+| Method | Qwen2-7B-Instruct<br>Fairness | <br>Privacy | Mistral-7B-Instruct-v0.2<br>Fairness | <br>Privacy | Vicuna-7B-v1.5<br>Fairness | <br>Privacy |
+|---|---|---|---|---|---|---|
+| Origin | 0.7159 | 0.7763 | 0.6896 | 0.7154 | 0.6536 | 0.4734 |
+| FFT | 0.5287 ± 0.0112 | 0.6697 ± 0.0380 | 0.6245 ± 0.0201 | **0.7940** ± 0.0102 | 0.5641 ± 0.0036 | **0.5956** ± 0.0101 |
+| LoRA | 0.5192 ± 0.0070 | 0.6819 ± 0.0119 | 0.5655 ± 0.0053 | 0.7671 ± 0.0053 | 0.5321 ± 0.0028 | 0.5753 ± 0.0422 |
+| DoRA | 0.5176 ± 0.0014 | 0.6773 ± 0.0132 | 0.5583 ± 0.0060 | 0.7605 ± 0.0093 | 0.5324 ± 0.0049 | 0.5758 ± 0.0375 |
+| **SPIN** | **0.7768** ± 0.0104 | **0.8376** ± 0.0038 | **0.7104** ± 0.0032 | 0.7621 ± 0.0114 | **0.6242** ± 0.0296 | 0.4510 ± 0.0298 |
+
+---
+
+**SPIN leaves general capabilities nearly unchanged.** The plot shows HellaSwag, MMLU, WinoGrande and perplexity, before and after SPIN.
+
+<img src="./assets/reproduction/general-capabilities.png" width="600" alt="General capabilities before and after SPIN">
+
+---
+
+**SPIN stays robust when only malicious data is available for Qwen2 and Mistral, while the SFT baselines drop below the origin model.** Single runs. The unrelated-data control shows that the effect depends on what the localization data contains.
+
+<img src="./assets/reproduction/malicious-data.png" width="700" alt="Malicious-data results">
+
+---
+
+**SPIN is largely insensitive to dataset size (Qwen2).** Single run per dataset size.
+
+<img src="./assets/reproduction/data-scale.png" width="700" alt="Data-scale results">
+
+---
+
+**Even a single example works, and its content matters.** Localizing on one relevant fairness/privacy example beats a length-matched unrelated example for Qwen2 and Mistral; there is no significant difference for Vicuna. The plot shows 25 paired runs per model.
+
+<img src="./assets/reproduction/n1-relevance-fairness.png" width="700" alt="N=1 relevant vs unrelated localization (fairness)">
+
+---
+
+**No neuron-locating metric dominates on every model.** Importance Score is best for Qwen2, and SparseGPT is best for Vicuna. Our gradient × activation extension is competitive. Single run per method.
+
+<img src="./assets/reproduction/neuron-locating-methods.png" width="600" alt="Neuron-locating methods">
+
+---
+
+**SPIN transfers in part to safety vs. helpfulness.** SPIN improves both dimensions for Qwen2 and Mistral, and neither changes significantly for Vicuna. The Qwen2 FFT runs here predate the attention fix (see *Known issue* below).
+
+<img src="./assets/reproduction/safety-helpfulness.png" width="700" alt="Safety-helpfulness results">
+
 ## Experiments beyond the core reproduction
 
 The report ([OpenReview](https://openreview.net/forum?id=7nKvpj17oI)) also covers the experiments below. Each folder holds its job scripts and, where noted, a README.
