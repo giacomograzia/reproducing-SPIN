@@ -87,6 +87,10 @@ snapshot_download('Qwen/Qwen2-7B-Instruct')
 # NOTE: `--save_safetensors True` intentionally omitted -- not a valid
 # TrainingArguments field in the installed transformers (5.6.0); llamafactory
 # rejects the whole command with "Got unknown args" if it's present.
+# --flash_attn disabled (eager attention), not auto: with auto, llamafactory picks
+# torch SDPA, and Qwen2 + SDPA + bf16 produces NaN gradients (see
+# ../../multiseed/jobs/diag_qwen_fft_nan.job). The runs reported in the paper
+# (job 26232123) used auto and had NaN gradients in 19-28 of 75 steps per seed.
 cd $HOME/fact-ai-group-23/LlamaFactory/
 
 conda run -n LlFactory --no-capture-output python -m llamafactory.cli train \
@@ -96,7 +100,7 @@ conda run -n LlFactory --no-capture-output python -m llamafactory.cli train \
   --preprocessing_num_workers 16 \
   --finetuning_type full \
   --template qwen \
-  --flash_attn auto \
+  --flash_attn disabled \
   --dataset_dir data \
   --dataset safety,helpfulness_train \
   --cutoff_len 1024 \

@@ -30,6 +30,24 @@ conda activate FACT
 NOTE: You can replace conda with micromamba or whichever version you have locally.
 
 
+## Experiments beyond the core reproduction
+
+The report ([OpenReview](https://openreview.net/forum?id=7nKvpj17oI)) also covers the experiments below. Each folder holds its job scripts and, where noted, a README.
+
+| Experiment | Where |
+|---|---|
+| Multi-seed SPIN, origin and SFT baselines (Table 1) | [`src/jobs/spin_experiments/multiseed/`](src/jobs/spin_experiments/multiseed/), [`reproduction/figures_and_tables/baselines-table-1/`](reproduction/figures_and_tables/baselines-table-1/) |
+| General capabilities and over-refusal | [`reproduction/general_capabilities/`](reproduction/general_capabilities/) (README), [`src/jobs/refusal/`](src/jobs/refusal/) |
+| Malicious data and unrelated-data control | [`reproduction/FFT/malicious-exp/`](reproduction/FFT/malicious-exp/), [`src/jobs/spin_experiments/`](src/jobs/spin_experiments/) (`run_maldata_*`, `build_unrelated_control_slices.*`), [`reproduction/figures_and_tables/malicious-data/`](reproduction/figures_and_tables/malicious-data/) |
+| Limited data / data scale | [`reproduction/LoRA-DoRA/FT-data-scale/`](reproduction/LoRA-DoRA/FT-data-scale/) (README), [`reproduction/FFT/limited-data-exp/`](reproduction/FFT/limited-data-exp/), [`reproduction/figures_and_tables/FT-data-scale/`](reproduction/figures_and_tables/FT-data-scale/) |
+| Neuron-locating methods, incl. gradient × activation | [`src/new-neuron-locating-method/`](src/new-neuron-locating-method/), [`reproduction/figures_and_tables/neuron-locating-methods/`](reproduction/figures_and_tables/neuron-locating-methods/) |
+| N=1 localization controls | [`src/n1_localization_controls/`](src/n1_localization_controls/) (README) |
+| Safety–helpfulness generalization | [`src/jobs/safety_helpfulness_paired/`](src/jobs/safety_helpfulness_paired/), [`reproduction/FFT/finetuning/jobs/safety_helpfulness_multiseed/`](reproduction/FFT/finetuning/jobs/safety_helpfulness_multiseed/), [`reproduction/LoRA-DoRA/FT-safety-helpfulness/`](reproduction/LoRA-DoRA/FT-safety-helpfulness/), [`extension_datasets/`](extension_datasets/) (README) |
+
+**Known issue, Qwen2 FFT:** with `--flash_attn auto`, LlamaFactory uses PyTorch SDPA, and Qwen2-7B-Instruct + SDPA + bf16 produces NaN gradients. The Table 1 Qwen2 FFT runs use `--flash_attn disabled` (eager attention), and so does the safety–helpfulness Qwen2 FFT job now. The malicious-data and safety–helpfulness Qwen2 FFT runs reported in the paper predate the fix; see [`diag_qwen_fft_nan.job`](reproduction/FFT/finetuning/jobs/multiseed/jobs/diag_qwen_fft_nan.job).
+
+**Paths:** job scripts were written for the Snellius cluster and contain absolute paths (home and scratch directories, account names). Adapt them to your environment before running.
+
 ## ReadMe Information from Original Paper by Qian et al.
 ## 🌈 Introduction
 
